@@ -1,630 +1,712 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Logic Lagao</title>
-<style>
-  :root {
-    --bg: #121212;
-    --surface: #1a1a1a;
-    --surface-2: #212121;
-    --border: #2c2c2c;
-    --text: #ededed;
-    --text-dim: #9a9a9a;
-    --accent: #e8b84b;
-    --accent-dim: #6b5a2a;
-    --done: #4caf82;
-    --not-done: #d97a5f;
-    --danger: #d9534f;
-    --radius: 10px;
-  }
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Logic Lagao</title>
+          <style>
+                    :root {
+                              --bg: #121212;
+                              --surface: #1a1a1a;
+                              --surface-2: #212121;
+                              --border: #2c2c2c;
+                              --text: #ededed;
+                              --text-dim: #9a9a9a;
+                              --accent: #e8b84b;
+                              --accent-dim: #6b5a2a;
+                              --done: #4caf82;
+                              --not-done: #d97a5f;
+                              --danger: #d9534f;
+                              --radius: 10px;
+                    }
 
-  * { box-sizing: border-box; }
+                    * {
+                              box-sizing: border-box;
+                    }
 
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
+                    body {
+                              margin: 0;
+                              background: var(--bg);
+                              color: var(--text);
+                              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    }
 
-  button {
-    font-family: inherit;
-    cursor: pointer;
-  }
+                    button {
+                              font-family: inherit;
+                              cursor: pointer;
+                    }
 
-  input, textarea {
-    font-family: inherit;
-  }
+                    input,
+                    textarea {
+                              font-family: inherit;
+                    }
 
-  /* ---------- Password screen ---------- */
-  #passwordScreen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
+                    /* ---------- Password screen ---------- */
+                    #passwordScreen {
+                              min-height: 100vh;
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                              padding: 20px;
+                    }
 
-  .pw-card {
-    width: 100%;
-    max-width: 340px;
-    text-align: center;
-  }
+                    .pw-card {
+                              width: 100%;
+                              max-width: 340px;
+                              text-align: center;
+                    }
 
-  .pw-title {
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    color: var(--accent);
-    margin-bottom: 28px;
-  }
+                    .pw-title {
+                              font-size: 28px;
+                              font-weight: 700;
+                              letter-spacing: -0.5px;
+                              color: var(--accent);
+                              margin-bottom: 28px;
+                    }
 
-  .pw-input {
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    font-size: 15px;
-    outline: none;
-    margin-bottom: 12px;
-  }
+                    .pw-input {
+                              width: 100%;
+                              padding: 12px 14px;
+                              border-radius: var(--radius);
+                              border: 1px solid var(--border);
+                              background: var(--surface);
+                              color: var(--text);
+                              font-size: 15px;
+                              outline: none;
+                              margin-bottom: 12px;
+                    }
 
-  .pw-input:focus {
-    border-color: var(--accent);
-  }
+                    #emailInput {
+                              width: 100%;
+                              padding: 12px 14px;
+                              border-radius: var(--radius);
+                              border: 1px solid var(--border);
+                              background: var(--surface);
+                              color: var(--text);
+                              font-size: 15px;
+                              outline: none;
+                              margin-bottom: 12px;
+                    }
 
-  .pw-btn {
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: var(--radius);
-    border: none;
-    background: var(--accent);
-    color: #1a1400;
-    font-size: 15px;
-    font-weight: 600;
-  }
+                    #emailInput:focus {
+                              border-color: var(--accent);
+                    }
 
-  .pw-error {
-    color: var(--danger);
-    font-size: 13px;
-    margin-top: 10px;
-    min-height: 16px;
-  }
+                    .pw-input:focus {
+                              border-color: var(--accent);
+                    }
 
-  /* ---------- Main app ---------- */
-  #app {
-    display: none;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 20px 16px 60px;
-  }
+                    .pw-btn {
+                              width: 100%;
+                              padding: 12px 14px;
+                              border-radius: var(--radius);
+                              border: none;
+                              background: var(--accent);
+                              color: #1a1400;
+                              font-size: 15px;
+                              font-weight: 600;
+                    }
 
-  .site-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--accent);
-    margin: 4px 0 18px;
-  }
+                    .pw-error {
+                              color: var(--danger);
+                              font-size: 13px;
+                              margin-top: 10px;
+                              min-height: 16px;
+                    }
 
-  nav.tabs {
-    display: flex;
-    gap: 6px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 18px;
-  }
+                    /* ---------- Main app ---------- */
+                    #app {
+                              display: none;
+                              max-width: 720px;
+                              margin: 0 auto;
+                              padding: 20px 16px 60px;
+                    }
 
-  .tab-btn {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    padding: 10px 4px;
-    margin-right: 18px;
-    font-size: 15px;
-    font-weight: 600;
-    border-bottom: 2px solid transparent;
-  }
+                    .site-title {
+                              font-size: 20px;
+                              font-weight: 700;
+                              color: var(--accent);
+                              margin: 4px 0 18px;
+                    }
 
-  .tab-btn.active {
-    color: var(--text);
-    border-bottom-color: var(--accent);
-  }
+                    nav.tabs {
+                              display: flex;
+                              gap: 6px;
+                              border-bottom: 1px solid var(--border);
+                              margin-bottom: 18px;
+                    }
 
-  .view { display: none; }
-  .view.active { display: block; }
+                    .tab-btn {
+                              background: none;
+                              border: none;
+                              color: var(--text-dim);
+                              padding: 10px 4px;
+                              margin-right: 18px;
+                              font-size: 15px;
+                              font-weight: 600;
+                              border-bottom: 2px solid transparent;
+                    }
 
-  h2.section-heading {
-    font-size: 14px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-dim);
-    margin: 0 0 12px;
-  }
+                    .tab-btn.active {
+                              color: var(--text);
+                              border-bottom-color: var(--accent);
+                    }
 
-  /* Filters + add button row */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
+                    .view {
+                              display: none;
+                    }
 
-  .filters {
-    display: flex;
-    gap: 6px;
-  }
+                    .view.active {
+                              display: block;
+                    }
 
-  .filter-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-  }
+                    h2.section-heading {
+                              font-size: 14px;
+                              text-transform: uppercase;
+                              letter-spacing: 0.06em;
+                              color: var(--text-dim);
+                              margin: 0 0 12px;
+                    }
 
-  .filter-btn.active {
-    background: var(--accent-dim);
-    color: var(--accent);
-    border-color: var(--accent-dim);
-  }
+                    /* Filters + add button row */
+                    .toolbar {
+                              display: flex;
+                              align-items: center;
+                              justify-content: space-between;
+                              gap: 10px;
+                              margin-bottom: 16px;
+                              flex-wrap: wrap;
+                    }
 
-  .add-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: none;
-    background: var(--accent);
-    color: #1a1400;
-    font-size: 20px;
-    line-height: 1;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
+                    .filters {
+                              display: flex;
+                              gap: 6px;
+                    }
 
-  /* Add-script form */
-  .add-form {
-    display: none;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 18px;
-  }
+                    .filter-btn {
+                              background: var(--surface);
+                              border: 1px solid var(--border);
+                              color: var(--text-dim);
+                              padding: 6px 12px;
+                              border-radius: 999px;
+                              font-size: 13px;
+                    }
 
-  .add-form.active { display: block; }
+                    .filter-btn.active {
+                              background: var(--accent-dim);
+                              color: var(--accent);
+                              border-color: var(--accent-dim);
+                    }
 
-  .add-form label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-  }
+                    .add-btn {
+                              width: 34px;
+                              height: 34px;
+                              border-radius: 50%;
+                              border: none;
+                              background: var(--accent);
+                              color: #1a1400;
+                              font-size: 20px;
+                              line-height: 1;
+                              font-weight: 700;
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                              flex-shrink: 0;
+                    }
 
-  .add-form input,
-  .add-form textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 14px;
-    outline: none;
-    margin-bottom: 12px;
-    resize: vertical;
-  }
+                    /* Add-script form */
+                    .add-form {
+                              display: none;
+                              background: var(--surface);
+                              border: 1px solid var(--border);
+                              border-radius: var(--radius);
+                              padding: 16px;
+                              margin-bottom: 18px;
+                    }
 
-  .add-form input:focus,
-  .add-form textarea:focus {
-    border-color: var(--accent);
-  }
+                    .add-form.active {
+                              display: block;
+                    }
 
-  .form-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-  }
+                    .add-form label {
+                              display: block;
+                              font-size: 12px;
+                              color: var(--text-dim);
+                              margin-bottom: 4px;
+                    }
 
-  .btn {
-    padding: 9px 16px;
-    border-radius: 8px;
-    border: none;
-    font-size: 14px;
-    font-weight: 600;
-  }
+                    .add-form input,
+                    .add-form textarea {
+                              width: 100%;
+                              padding: 10px 12px;
+                              border-radius: 8px;
+                              border: 1px solid var(--border);
+                              background: var(--surface-2);
+                              color: var(--text);
+                              font-size: 14px;
+                              outline: none;
+                              margin-bottom: 12px;
+                              resize: vertical;
+                    }
 
-  .btn-primary {
-    background: var(--accent);
-    color: #1a1400;
-  }
+                    .add-form input:focus,
+                    .add-form textarea:focus {
+                              border-color: var(--accent);
+                    }
 
-  .btn-secondary {
-    background: transparent;
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-  }
+                    .form-actions {
+                              display: flex;
+                              gap: 8px;
+                              justify-content: flex-end;
+                    }
 
-  /* Script cards */
-  .script-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px;
-    margin-bottom: 10px;
-  }
+                    .btn {
+                              padding: 9px 16px;
+                              border-radius: 8px;
+                              border: none;
+                              font-size: 14px;
+                              font-weight: 600;
+                    }
 
-  .script-checkbox {
-    width: 20px;
-    height: 20px;
-    margin-top: 2px;
-    accent-color: var(--accent);
-    flex-shrink: 0;
-    cursor: pointer;
-  }
+                    .btn-primary {
+                              background: var(--accent);
+                              color: #1a1400;
+                    }
 
-  .script-body {
-    flex: 1;
-    min-width: 0;
-  }
+                    .btn-secondary {
+                              background: transparent;
+                              color: var(--text-dim);
+                              border: 1px solid var(--border);
+                    }
 
-  .script-title {
-    font-size: 15px;
-    font-weight: 600;
-    margin: 0 0 4px;
-    word-break: break-word;
-  }
+                    /* Script cards */
+                    .script-card {
+                              display: flex;
+                              align-items: flex-start;
+                              gap: 12px;
+                              background: var(--surface);
+                              border: 1px solid var(--border);
+                              border-radius: var(--radius);
+                              padding: 14px;
+                              margin-bottom: 10px;
+                    }
 
-  .script-title.done {
-    text-decoration: line-through;
-    color: var(--text-dim);
-  }
+                    .script-checkbox {
+                              width: 20px;
+                              height: 20px;
+                              margin-top: 2px;
+                              accent-color: var(--accent);
+                              flex-shrink: 0;
+                              cursor: pointer;
+                    }
 
-  .script-desc {
-    font-size: 13px;
-    color: var(--text-dim);
-    margin: 0 0 8px;
-    word-break: break-word;
-  }
+                    .script-body {
+                              flex: 1;
+                              min-width: 0;
+                    }
 
-  .script-meta {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 12px;
-  }
+                    .script-title {
+                              font-size: 15px;
+                              font-weight: 600;
+                              margin: 0 0 4px;
+                              word-break: break-word;
+                    }
 
-  .status-badge {
-    padding: 2px 9px;
-    border-radius: 999px;
-    font-weight: 600;
-  }
+                    .script-title.done {
+                              text-decoration: line-through;
+                              color: var(--text-dim);
+                    }
 
-  .status-badge.done {
-    background: rgba(76, 175, 130, 0.15);
-    color: var(--done);
-  }
+                    .script-desc {
+                              font-size: 13px;
+                              color: var(--text-dim);
+                              margin: 0 0 8px;
+                              word-break: break-word;
+                    }
 
-  .status-badge.not-done {
-    background: rgba(217, 122, 95, 0.15);
-    color: var(--not-done);
-  }
+                    .script-meta {
+                              display: flex;
+                              align-items: center;
+                              gap: 10px;
+                              font-size: 12px;
+                    }
 
-  .date-text {
-    color: var(--text-dim);
-  }
+                    .status-badge {
+                              padding: 2px 9px;
+                              border-radius: 999px;
+                              font-weight: 600;
+                    }
 
-  .delete-btn {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    font-size: 18px;
-    line-height: 1;
-    padding: 4px 6px;
-    flex-shrink: 0;
-  }
+                    .status-badge.done {
+                              background: rgba(76, 175, 130, 0.15);
+                              color: var(--done);
+                    }
 
-  .delete-btn:hover {
-    color: var(--danger);
-  }
+                    .status-badge.not-done {
+                              background: rgba(217, 122, 95, 0.15);
+                              color: var(--not-done);
+                    }
 
-  .edit-btn {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    font-size: 14px;
-    line-height: 1;
-    padding: 4px 6px;
-    flex-shrink: 0;
-  }
+                    .date-text {
+                              color: var(--text-dim);
+                    }
 
-  .edit-btn:hover {
-    color: var(--accent);
-  }
+                    .delete-btn {
+                              background: none;
+                              border: none;
+                              color: var(--text-dim);
+                              font-size: 18px;
+                              line-height: 1;
+                              padding: 4px 6px;
+                              flex-shrink: 0;
+                    }
 
-  .card-actions {
-    display: flex;
-    gap: 2px;
-    flex-shrink: 0;
-  }
+                    .delete-btn:hover {
+                              color: var(--danger);
+                    }
 
-  .edit-form {
-    flex: 1;
-    min-width: 0;
-  }
+                    .edit-btn {
+                              background: none;
+                              border: none;
+                              color: var(--text-dim);
+                              font-size: 14px;
+                              line-height: 1;
+                              padding: 4px 6px;
+                              flex-shrink: 0;
+                    }
 
-  .edit-form input,
-  .edit-form textarea {
-    width: 100%;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 14px;
-    outline: none;
-    margin-bottom: 8px;
-    resize: vertical;
-  }
+                    .edit-btn:hover {
+                              color: var(--accent);
+                    }
 
-  .edit-form input:focus,
-  .edit-form textarea:focus {
-    border-color: var(--accent);
-  }
+                    .card-actions {
+                              display: flex;
+                              gap: 2px;
+                              flex-shrink: 0;
+                    }
 
-  .edit-form-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-  }
+                    .edit-form {
+                              flex: 1;
+                              min-width: 0;
+                    }
 
-  .empty-state {
-    color: var(--text-dim);
-    font-size: 14px;
-    padding: 30px 0;
-    text-align: center;
-  }
+                    .edit-form input,
+                    .edit-form textarea {
+                              width: 100%;
+                              padding: 8px 10px;
+                              border-radius: 8px;
+                              border: 1px solid var(--border);
+                              background: var(--surface-2);
+                              color: var(--text);
+                              font-size: 14px;
+                              outline: none;
+                              margin-bottom: 8px;
+                              resize: vertical;
+                    }
 
-  @media (max-width: 480px) {
-    .toolbar { align-items: center; }
-    .site-title { font-size: 18px; }
-  }
-</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+                    .edit-form input:focus,
+                    .edit-form textarea:focus {
+                              border-color: var(--accent);
+                    }
+
+                    .edit-form-actions {
+                              display: flex;
+                              gap: 8px;
+                              justify-content: flex-end;
+                    }
+
+                    .empty-state {
+                              color: var(--text-dim);
+                              font-size: 14px;
+                              padding: 30px 0;
+                              text-align: center;
+                    }
+
+                    @media (max-width: 480px) {
+                              .toolbar {
+                                        align-items: center;
+                              }
+
+                              .site-title {
+                                        font-size: 18px;
+                              }
+                    }
+          </style>
+          <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
+
 <body>
 
-  <!-- PAGE 1: PASSWORD -->
-  <div id="passwordScreen">
-    <div class="pw-card">
-      <div class="pw-title">Logic Lagao</div>
-      <input type="password" id="passwordInput" class="pw-input" placeholder="Password" autocomplete="off">
-      <button class="pw-btn" id="enterBtn">Enter</button>
-      <div class="pw-error" id="pwError"></div>
-    </div>
-  </div>
+          <!-- PAGE 1: PASSWORD -->
+          <div id="passwordScreen">
+                    <div class="pw-card">
+                              <div class="pw-title">Logic Lagao</div>
+                              <input type="email" id="emailInput" placeholder="Email" autocomplete="email">
+                              <input type="password" id="passwordInput" class="pw-input" placeholder="Password"
+                                        autocomplete="off">
+                              <button class="pw-btn" id="enterBtn">Enter</button>
+                              <div class="pw-error" id="pwError"></div>
+                    </div>
+          </div>
 
-  <!-- PAGE 2: MAIN APP -->
-  <div id="app">
-    <div class="site-title">Logic Lagao</div>
+          <!-- PAGE 2: MAIN APP -->
+          <div id="app">
+                    <div class="site-title">Logic Lagao</div>
 
-    <nav class="tabs">
-      <button class="tab-btn active" data-tab="home">Home</button>
-      <button class="tab-btn" data-tab="scripts">Scripts</button>
-    </nav>
+                    <nav class="tabs">
+                              <button class="tab-btn active" data-tab="home">Home</button>
+                              <button class="tab-btn" data-tab="scripts">Scripts</button>
+                    </nav>
 
-    <!-- HOME VIEW -->
-    <div class="view active" id="homeView">
-      <h2 class="section-heading">Recently added</h2>
-      <div id="homeList"></div>
-    </div>
+                    <!-- HOME VIEW -->
+                    <div class="view active" id="homeView">
+                              <h2 class="section-heading">Recently added</h2>
+                              <div id="homeList"></div>
+                    </div>
 
-    <!-- SCRIPTS VIEW -->
-    <div class="view" id="scriptsView">
-      <div class="toolbar">
-        <div class="filters">
-          <button class="filter-btn active" data-filter="all">All</button>
-          <button class="filter-btn" data-filter="not-done">Not Done</button>
-          <button class="filter-btn" data-filter="done">Done</button>
-        </div>
-        <button class="add-btn" id="showAddFormBtn" title="Add script">+</button>
-      </div>
+                    <!-- SCRIPTS VIEW -->
+                    <div class="view" id="scriptsView">
+                              <div class="toolbar">
+                                        <div class="filters">
+                                                  <button class="filter-btn active" data-filter="all">All</button>
+                                                  <button class="filter-btn" data-filter="not-done">Not Done</button>
+                                                  <button class="filter-btn" data-filter="done">Done</button>
+                                        </div>
+                                        <button class="add-btn" id="showAddFormBtn" title="Add script">+</button>
+                              </div>
 
-      <div class="add-form" id="addForm">
-        <label for="newTitle">Idea / Title</label>
-        <input type="text" id="newTitle" placeholder="e.g. Why cats hate water">
+                              <div class="add-form" id="addForm">
+                                        <label for="newTitle">Idea / Title</label>
+                                        <input type="text" id="newTitle" placeholder="e.g. Why cats hate water">
 
-        <label for="newDesc">Description</label>
-        <textarea id="newDesc" rows="3" placeholder="Short description of the script"></textarea>
+                                        <label for="newDesc">Description</label>
+                                        <textarea id="newDesc" rows="3"
+                                                  placeholder="Short description of the script"></textarea>
 
-        <div class="form-actions">
-          <button class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
-          <button class="btn btn-primary" id="submitAddBtn">Add Script</button>
-        </div>
-      </div>
+                                        <div class="form-actions">
+                                                  <button class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
+                                                  <button class="btn btn-primary" id="submitAddBtn">Add Script</button>
+                                        </div>
+                              </div>
 
-      <div id="scriptsList"></div>
-    </div>
-  </div>
+                              <div id="scriptsList"></div>
+                    </div>
+          </div>
 
-<script>
-  /* ============================================================
-     CONFIG
-  ============================================================ */
-  const SITE_PASSWORD = "ll123"; // change this password as needed
 
-  /* ============================================================
-     DATA LAYER
-     All data operations live here, backed by Supabase. The UI
-     code below only calls these functions and never talks to
-     Supabase directly, so the backend can be swapped again later
-     without touching the UI.
-  ============================================================ */
-  const SUPABASE_URL = "https://lvsohmtmydjvuwiptvvs.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_07ljO6sChQRYpMyQGDEgLg_7RGz37RL";
 
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          <script>
+                    /* ============================================================
+                       CONFIG
+                    ============================================================ */
 
-  const TABLE_NAME = "scripts";
 
-  // Converts a Supabase row into the shape the UI expects.
-  function _mapRow(row) {
-    return {
-      id: row.id,
-      title: row.title,
-      description: row.description || "",
-      done: row.done,
-      createdAt: row.created_at
-    };
-  }
+                    /* ============================================================
+                       DATA LAYER
+                       All data operations live here, backed by Supabase. The UI
+                       code below only calls these functions and never talks to
+                       Supabase directly, so the backend can be swapped again later
+                       without touching the UI.
+                    ============================================================ */
+                    const SUPABASE_URL = "https://lvsohmtmydjvuwiptvvs.supabase.co";
+                    const SUPABASE_ANON_KEY = "sb_publishable_07ljO6sChQRYpMyQGDEgLg_7RGz37RL";
 
-  // Returns all scripts, newest first.
-  async function getScripts() {
-    const { data, error } = await supabaseClient
-      .from(TABLE_NAME)
-      .select("*")
-      .order("created_at", { ascending: false });
+                    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    if (error) {
-      console.error("getScripts error:", error.message);
-      return [];
-    }
-    return data.map(_mapRow);
-  }
+                    const TABLE_NAME = "scripts";
 
-  // Adds a new script. Returns the created script (or null on failure).
-  async function addScript(title, description) {
-    const { data, error } = await supabaseClient
-      .from(TABLE_NAME)
-      .insert([{ title: title, description: description, done: false }])
-      .select()
-      .single();
+                    // Converts a Supabase row into the shape the UI expects.
+                    function _mapRow(row) {
+                              return {
+                                        id: row.id,
+                                        title: row.title,
+                                        description: row.description || "",
+                                        done: row.done,
+                                        createdAt: row.created_at
+                              };
+                    }
 
-    if (error) {
-      console.error("addScript error:", error.message);
-      return null;
-    }
-    return _mapRow(data);
-  }
+                    // Returns all scripts, newest first.
+                    async function getScripts() {
+                              const {data, error} = await supabaseClient
+                                        .from(TABLE_NAME)
+                                        .select("*")
+                                        .order("created_at", {ascending: false});
 
-  // Toggles a script's done status. `currentDone` is the value before toggling.
-  async function toggleScript(id, currentDone) {
-    const { error } = await supabaseClient
-      .from(TABLE_NAME)
-      .update({ done: !currentDone })
-      .eq("id", id);
+                              if (error) {
+                                        console.error("getScripts error:", error.message);
+                                        return [];
+                              }
+                              return data.map(_mapRow);
+                    }
 
-    if (error) {
-      console.error("toggleScript error:", error.message);
-    }
-  }
+                    // Adds a new script. Returns the created script (or null on failure).
+                    async function addScript(title, description) {
+                              const {data, error} = await supabaseClient
+                                        .from(TABLE_NAME)
+                                        .insert([{title: title, description: description, done: false}])
+                                        .select()
+                                        .single();
 
-  // Deletes a script by id.
-  async function deleteScript(id) {
-    const { error } = await supabaseClient
-      .from(TABLE_NAME)
-      .delete()
-      .eq("id", id);
+                              if (error) {
+                                        console.error("addScript error:", error.message);
+                                        return null;
+                              }
+                              return _mapRow(data);
+                    }
 
-    if (error) {
-      console.error("deleteScript error:", error.message);
-    }
-  }
+                    // Toggles a script's done status. `currentDone` is the value before toggling.
+                    async function toggleScript(id, currentDone) {
+                              const {error} = await supabaseClient
+                                        .from(TABLE_NAME)
+                                        .update({done: !currentDone})
+                                        .eq("id", id);
 
-  // Updates a script's title and description.
-  async function updateScript(id, title, description) {
-    const { error } = await supabaseClient
-      .from(TABLE_NAME)
-      .update({ title: title, description: description })
-      .eq("id", id);
+                              if (error) {
+                                        console.error("toggleScript error:", error.message);
+                              }
+                    }
 
-    if (error) {
-      console.error("updateScript error:", error.message);
-    }
-  }
+                    // Deletes a script by id.
+                    async function deleteScript(id) {
+                              const {error} = await supabaseClient
+                                        .from(TABLE_NAME)
+                                        .delete()
+                                        .eq("id", id);
 
-  /* ============================================================
-     UI STATE
-  ============================================================ */
-  let currentFilter = "all"; // all | done | not-done
-  let editingId = null; // id of the script currently being edited, or null
+                              if (error) {
+                                        console.error("deleteScript error:", error.message);
+                              }
+                    }
 
-  /* ============================================================
-     PASSWORD SCREEN
-  ============================================================ */
-  const passwordScreen = document.getElementById("passwordScreen");
-  const appEl = document.getElementById("app");
-  const passwordInput = document.getElementById("passwordInput");
-  const enterBtn = document.getElementById("enterBtn");
-  const pwError = document.getElementById("pwError");
+                    // Updates a script's title and description.
+                    async function updateScript(id, title, description) {
+                              const {error} = await supabaseClient
+                                        .from(TABLE_NAME)
+                                        .update({title: title, description: description})
+                                        .eq("id", id);
 
-  function tryEnter() {
-    if (passwordInput.value === SITE_PASSWORD) {
-      passwordScreen.style.display = "none";
-      appEl.style.display = "block";
-      renderHome();
-      renderScripts();
-    } else {
-      pwError.textContent = "Incorrect password";
-    }
-  }
+                              if (error) {
+                                        console.error("updateScript error:", error.message);
+                              }
+                    }
 
-  enterBtn.addEventListener("click", tryEnter);
-  passwordInput.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") tryEnter();
-  });
+                    /* ============================================================
+                       UI STATE
+                    ============================================================ */
+                    let currentFilter = "all"; // all | done | not-done
+                    let editingId = null; // id of the script currently being edited, or null
 
-  /* ============================================================
-     TABS
-  ============================================================ */
-  const tabButtons = document.querySelectorAll(".tab-btn");
-  const views = {
-    home: document.getElementById("homeView"),
-    scripts: document.getElementById("scriptsView")
-  };
+                    /* ============================================================
+   LOGIN SCREEN - SUPABASE AUTH
+============================================================ */
 
-  tabButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      tabButtons.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      Object.values(views).forEach(v => v.classList.remove("active"));
-      views[btn.dataset.tab].classList.add("active");
-      if (btn.dataset.tab === "home") renderHome();
-      if (btn.dataset.tab === "scripts") renderScripts();
-    });
-  });
+                    const passwordScreen = document.getElementById("passwordScreen");
+                    const appEl = document.getElementById("app");
 
-  /* ============================================================
-     RENDER HELPERS
-  ============================================================ */
-  function formatDate(timestamp) {
-    const d = new Date(timestamp);
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  }
+                    const emailInput = document.getElementById("emailInput");
+                    const passwordInput = document.getElementById("passwordInput");
+                    const enterBtn = document.getElementById("enterBtn");
+                    const pwError = document.getElementById("pwError");
 
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str;
-    return div.innerHTML;
-  }
+                    async function tryEnter() {
+                              const email = emailInput.value.trim();
+                              const password = passwordInput.value;
 
-  function scriptCardHtml(script, { withCheckbox, withDelete, withEdit, editing }) {
-    const doneClass = script.done ? "done" : "not-done";
-    const statusText = script.done ? "Done" : "Not Done";
+                              if (!email || !password) {
+                                        pwError.textContent = "Enter email and password";
+                                        return;
+                              }
 
-    if (withEdit && editing) {
-      return `
+                              pwError.textContent = "";
+                              enterBtn.disabled = true;
+                              enterBtn.textContent = "Logging in...";
+
+                              const {error} = await supabaseClient.auth.signInWithPassword({
+                                        email: email,
+                                        password: password
+                              });
+
+                              enterBtn.disabled = false;
+                              enterBtn.textContent = "Enter";
+
+                              if (error) {
+                                        pwError.textContent = "Incorrect email or password";
+                                        return;
+                              }
+
+                              showApp();
+                    }
+
+                    function showApp() {
+                              passwordScreen.style.display = "none";
+                              appEl.style.display = "block";
+                              renderHome();
+                              renderScripts();
+                    }
+
+                    enterBtn.addEventListener("click", tryEnter);
+
+                    passwordInput.addEventListener("keydown", function (e) {
+                              if (e.key === "Enter") tryEnter();
+                    });
+
+                    emailInput.addEventListener("keydown", function (e) {
+                              if (e.key === "Enter") tryEnter();
+                    });
+
+                    /* Check if user is already logged in */
+                    async function checkExistingSession() {
+                              const {data} = await supabaseClient.auth.getSession();
+
+                              if (data.session) {
+                                        showApp();
+                              }
+                    }
+
+                    checkExistingSession();
+
+                    /* ============================================================
+                       TABS
+                    ============================================================ */
+                    const tabButtons = document.querySelectorAll(".tab-btn");
+                    const views = {
+                              home: document.getElementById("homeView"),
+                              scripts: document.getElementById("scriptsView")
+                    };
+
+                    tabButtons.forEach(btn => {
+                              btn.addEventListener("click", () => {
+                                        tabButtons.forEach(b => b.classList.remove("active"));
+                                        btn.classList.add("active");
+                                        Object.values(views).forEach(v => v.classList.remove("active"));
+                                        views[btn.dataset.tab].classList.add("active");
+                                        if (btn.dataset.tab === "home") renderHome();
+                                        if (btn.dataset.tab === "scripts") renderScripts();
+                              });
+                    });
+
+                    /* ============================================================
+                       RENDER HELPERS
+                    ============================================================ */
+                    function formatDate(timestamp) {
+                              const d = new Date(timestamp);
+                              return d.toLocaleDateString(undefined, {year: "numeric", month: "short", day: "numeric"});
+                    }
+
+                    function escapeHtml(str) {
+                              const div = document.createElement("div");
+                              div.textContent = str;
+                              return div.innerHTML;
+                    }
+
+                    function scriptCardHtml(script, {withCheckbox, withDelete, withEdit, editing}) {
+                              const doneClass = script.done ? "done" : "not-done";
+                              const statusText = script.done ? "Done" : "Not Done";
+
+                              if (withEdit && editing) {
+                                        return `
         <div class="script-card" data-id="${script.id}">
           <div class="edit-form">
             <input type="text" class="edit-title-input" value="${escapeHtml(script.title)}">
@@ -636,9 +718,9 @@
           </div>
         </div>
       `;
-    }
+                              }
 
-    return `
+                              return `
       <div class="script-card" data-id="${script.id}">
         ${withCheckbox ? `<input type="checkbox" class="script-checkbox" ${script.done ? "checked" : ""}>` : ""}
         <div class="script-body">
@@ -655,172 +737,173 @@
         </div>
       </div>
     `;
-  }
+                    }
 
-  /* ============================================================
-     HOME VIEW
-  ============================================================ */
-  async function renderHome() {
-    const homeList = document.getElementById("homeList");
-    homeList.innerHTML = `<div class="empty-state">Loading...</div>`;
+                    /* ============================================================
+                       HOME VIEW
+                    ============================================================ */
+                    async function renderHome() {
+                              const homeList = document.getElementById("homeList");
+                              homeList.innerHTML = `<div class="empty-state">Loading...</div>`;
 
-    const scripts = await getScripts(); // already newest first
+                              const scripts = await getScripts(); // already newest first
 
-    if (scripts.length === 0) {
-      homeList.innerHTML = `<div class="empty-state">No scripts added yet.</div>`;
-      return;
-    }
+                              if (scripts.length === 0) {
+                                        homeList.innerHTML = `<div class="empty-state">No scripts added yet.</div>`;
+                                        return;
+                              }
 
-    homeList.innerHTML = scripts
-      .map(s => scriptCardHtml(s, { withCheckbox: false, withDelete: false, withEdit: false, editing: false }))
-      .join("");
-  }
+                              homeList.innerHTML = scripts
+                                        .map(s => scriptCardHtml(s, {withCheckbox: false, withDelete: false, withEdit: false, editing: false}))
+                                        .join("");
+                    }
 
-  /* ============================================================
-     SCRIPTS VIEW
-  ============================================================ */
-  let scriptsById = {}; // cache of last-fetched scripts, keyed by id, for quick lookups
+                    /* ============================================================
+                       SCRIPTS VIEW
+                    ============================================================ */
+                    let scriptsById = {}; // cache of last-fetched scripts, keyed by id, for quick lookups
 
-  async function getFilteredScripts() {
-    const scripts = await getScripts();
-    scriptsById = {};
-    scripts.forEach(s => { scriptsById[s.id] = s; });
+                    async function getFilteredScripts() {
+                              const scripts = await getScripts();
+                              scriptsById = {};
+                              scripts.forEach(s => {scriptsById[s.id] = s;});
 
-    if (currentFilter === "done") return scripts.filter(s => s.done);
-    if (currentFilter === "not-done") return scripts.filter(s => !s.done);
-    return scripts;
-  }
+                              if (currentFilter === "done") return scripts.filter(s => s.done);
+                              if (currentFilter === "not-done") return scripts.filter(s => !s.done);
+                              return scripts;
+                    }
 
-  async function renderScripts() {
-    const scriptsList = document.getElementById("scriptsList");
-    scriptsList.innerHTML = `<div class="empty-state">Loading...</div>`;
+                    async function renderScripts() {
+                              const scriptsList = document.getElementById("scriptsList");
+                              scriptsList.innerHTML = `<div class="empty-state">Loading...</div>`;
 
-    const scripts = await getFilteredScripts();
+                              const scripts = await getFilteredScripts();
 
-    if (scripts.length === 0) {
-      scriptsList.innerHTML = `<div class="empty-state">No scripts here.</div>`;
-      return;
-    }
+                              if (scripts.length === 0) {
+                                        scriptsList.innerHTML = `<div class="empty-state">No scripts here.</div>`;
+                                        return;
+                              }
 
-    scriptsList.innerHTML = scripts
-      .map(s => scriptCardHtml(s, {
-        withCheckbox: true,
-        withDelete: true,
-        withEdit: true,
-        editing: s.id === editingId
-      }))
-      .join("");
+                              scriptsList.innerHTML = scripts
+                                        .map(s => scriptCardHtml(s, {
+                                                  withCheckbox: true,
+                                                  withDelete: true,
+                                                  withEdit: true,
+                                                  editing: s.id === editingId
+                                        }))
+                                        .join("");
 
-    // Attach listeners
-    scriptsList.querySelectorAll(".script-card").forEach(card => {
-      const id = Number(card.dataset.id);
+                              // Attach listeners
+                              scriptsList.querySelectorAll(".script-card").forEach(card => {
+                                        const id = Number(card.dataset.id);
 
-      const checkbox = card.querySelector(".script-checkbox");
-      if (checkbox) {
-        checkbox.addEventListener("change", async () => {
-          const current = scriptsById[id];
-          await toggleScript(id, current ? current.done : false);
-          renderScripts();
-          renderHome();
-        });
-      }
+                                        const checkbox = card.querySelector(".script-checkbox");
+                                        if (checkbox) {
+                                                  checkbox.addEventListener("change", async () => {
+                                                            const current = scriptsById[id];
+                                                            await toggleScript(id, current ? current.done : false);
+                                                            renderScripts();
+                                                            renderHome();
+                                                  });
+                                        }
 
-      const deleteBtn = card.querySelector(".delete-btn");
-      if (deleteBtn) {
-        deleteBtn.addEventListener("click", async () => {
-          await deleteScript(id);
-          renderScripts();
-          renderHome();
-        });
-      }
+                                        const deleteBtn = card.querySelector(".delete-btn");
+                                        if (deleteBtn) {
+                                                  deleteBtn.addEventListener("click", async () => {
+                                                            await deleteScript(id);
+                                                            renderScripts();
+                                                            renderHome();
+                                                  });
+                                        }
 
-      const editBtn = card.querySelector(".edit-btn");
-      if (editBtn) {
-        editBtn.addEventListener("click", () => {
-          editingId = id;
-          renderScripts();
-        });
-      }
+                                        const editBtn = card.querySelector(".edit-btn");
+                                        if (editBtn) {
+                                                  editBtn.addEventListener("click", () => {
+                                                            editingId = id;
+                                                            renderScripts();
+                                                  });
+                                        }
 
-      const editCancelBtn = card.querySelector(".edit-cancel-btn");
-      if (editCancelBtn) {
-        editCancelBtn.addEventListener("click", () => {
-          editingId = null;
-          renderScripts();
-        });
-      }
+                                        const editCancelBtn = card.querySelector(".edit-cancel-btn");
+                                        if (editCancelBtn) {
+                                                  editCancelBtn.addEventListener("click", () => {
+                                                            editingId = null;
+                                                            renderScripts();
+                                                  });
+                                        }
 
-      const editSaveBtn = card.querySelector(".edit-save-btn");
-      if (editSaveBtn) {
-        editSaveBtn.addEventListener("click", async () => {
-          const titleInput = card.querySelector(".edit-title-input");
-          const descInput = card.querySelector(".edit-desc-input");
-          const newTitle = titleInput.value.trim();
-          const newDesc = descInput.value.trim();
+                                        const editSaveBtn = card.querySelector(".edit-save-btn");
+                                        if (editSaveBtn) {
+                                                  editSaveBtn.addEventListener("click", async () => {
+                                                            const titleInput = card.querySelector(".edit-title-input");
+                                                            const descInput = card.querySelector(".edit-desc-input");
+                                                            const newTitle = titleInput.value.trim();
+                                                            const newDesc = descInput.value.trim();
 
-          if (!newTitle) {
-            titleInput.focus();
-            return;
-          }
+                                                            if (!newTitle) {
+                                                                      titleInput.focus();
+                                                                      return;
+                                                            }
 
-          await updateScript(id, newTitle, newDesc);
-          editingId = null;
-          renderScripts();
-          renderHome();
-        });
-      }
-    });
-  }
+                                                            await updateScript(id, newTitle, newDesc);
+                                                            editingId = null;
+                                                            renderScripts();
+                                                            renderHome();
+                                                  });
+                                        }
+                              });
+                    }
 
-  /* Filter buttons */
-  document.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentFilter = btn.dataset.filter;
-      renderScripts();
-    });
-  });
+                    /* Filter buttons */
+                    document.querySelectorAll(".filter-btn").forEach(btn => {
+                              btn.addEventListener("click", () => {
+                                        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+                                        btn.classList.add("active");
+                                        currentFilter = btn.dataset.filter;
+                                        renderScripts();
+                              });
+                    });
 
-  /* ============================================================
-     ADD SCRIPT FORM
-  ============================================================ */
-  const addForm = document.getElementById("addForm");
-  const showAddFormBtn = document.getElementById("showAddFormBtn");
-  const cancelAddBtn = document.getElementById("cancelAddBtn");
-  const submitAddBtn = document.getElementById("submitAddBtn");
-  const newTitleInput = document.getElementById("newTitle");
-  const newDescInput = document.getElementById("newDesc");
+                    /* ============================================================
+                       ADD SCRIPT FORM
+                    ============================================================ */
+                    const addForm = document.getElementById("addForm");
+                    const showAddFormBtn = document.getElementById("showAddFormBtn");
+                    const cancelAddBtn = document.getElementById("cancelAddBtn");
+                    const submitAddBtn = document.getElementById("submitAddBtn");
+                    const newTitleInput = document.getElementById("newTitle");
+                    const newDescInput = document.getElementById("newDesc");
 
-  showAddFormBtn.addEventListener("click", () => {
-    addForm.classList.add("active");
-    newTitleInput.focus();
-  });
+                    showAddFormBtn.addEventListener("click", () => {
+                              addForm.classList.add("active");
+                              newTitleInput.focus();
+                    });
 
-  cancelAddBtn.addEventListener("click", closeAddForm);
+                    cancelAddBtn.addEventListener("click", closeAddForm);
 
-  function closeAddForm() {
-    addForm.classList.remove("active");
-    newTitleInput.value = "";
-    newDescInput.value = "";
-  }
+                    function closeAddForm() {
+                              addForm.classList.remove("active");
+                              newTitleInput.value = "";
+                              newDescInput.value = "";
+                    }
 
-  submitAddBtn.addEventListener("click", async () => {
-    const title = newTitleInput.value.trim();
-    const description = newDescInput.value.trim();
+                    submitAddBtn.addEventListener("click", async () => {
+                              const title = newTitleInput.value.trim();
+                              const description = newDescInput.value.trim();
 
-    if (!title) {
-      newTitleInput.focus();
-      return;
-    }
+                              if (!title) {
+                                        newTitleInput.focus();
+                                        return;
+                              }
 
-    submitAddBtn.disabled = true;
-    await addScript(title, description);
-    submitAddBtn.disabled = false;
-    closeAddForm();
-    renderScripts();
-    renderHome();
-  });
-</script>
+                              submitAddBtn.disabled = true;
+                              await addScript(title, description);
+                              submitAddBtn.disabled = false;
+                              closeAddForm();
+                              renderScripts();
+                              renderHome();
+                    });
+          </script>
 </body>
+
 </html>
