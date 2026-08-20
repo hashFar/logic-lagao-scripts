@@ -401,6 +401,7 @@
     .site-title { font-size: 18px; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -465,67 +466,91 @@
 
   /* ============================================================
      DATA LAYER
-     All data operations live here. To move to a cloud database
-     (e.g. Supabase) later, only the functions in this section
-     need to change — the UI code below never touches storage
-     directly.
+     All data operations live here, backed by Supabase. The UI
+     code below only calls these functions and never talks to
+     Supabase directly, so the backend can be swapped again later
+     without touching the UI.
   ============================================================ */
-  const STORAGE_KEY = "logicLagaoScripts";
+  const SUPABASE_URL = "https://lvsohmtmydjvuwiptvvs.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_07ljO6sChQRYpMyQGDEgLg_7RGz37RL";
 
-  function _readAll() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  function _writeAll(scripts) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(scripts));
+  const TABLE_NAME = "scripts";
+
+  // Converts a Supabase row into the shape the UI expects.
+  function _mapRow(row) {
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description || "",
+      done: row.done,
+      createdAt: row.created_at
+    };
   }
 
   // Returns all scripts, newest first.
-  function getScripts() {
-    const scripts = _readAll();
-    return scripts.slice().sort((a, b) => b.createdAt - a.createdAt);
+  async function getScripts() {
+    const { data, error } = await supabaseClient
+      .from(TABLE_NAME)
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("getScripts error:", error.message);
+      return [];
+    }
+    return data.map(_mapRow);
   }
 
-  // Adds a new script. Returns the created script.
-  function addScript(title, description) {
-    const scripts = _readAll();
-    const newScript = {
-      id: Date.now().toString(),
-      title: title,
-      description: description,
-      done: false,
-      createdAt: Date.now()
-    };
-    scripts.push(newScript);
-    _writeAll(scripts);
-    return newScript;
+  // Adds a new script. Returns the created script (or null on failure).
+  async function addScript(title, description) {
+    const { data, error } = await supabaseClient
+      .from(TABLE_NAME)
+      .insert([{ title: title, description: description, done: false }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("addScript error:", error.message);
+      return null;
+    }
+    return _mapRow(data);
   }
 
-  // Toggles a script's done status.
-  function toggleScript(id) {
-    const scripts = _readAll();
-    const script = scripts.find(s => s.id === id);
-    if (script) {
-      script.done = !script.done;
-      _writeAll(scripts);
+  // Toggles a script's done status. `currentDone` is the value before toggling.
+  async function toggleScript(id, currentDone) {
+    const { error } = await supabaseClient
+      .from(TABLE_NAME)
+      .update({ done: !currentDone })
+      .eq("id", id);
+
+    if (error) {
+      console.error("toggleScript error:", error.message);
     }
   }
 
   // Deletes a script by id.
-  function deleteScript(id) {
-    const scripts = _readAll().filter(s => s.id !== id);
-    _writeAll(scripts);
+  async function deleteScript(id) {
+    const { error } = await supabaseClient
+      .from(TABLE_NAME)
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("deleteScript error:", error.message);
+    }
   }
 
   // Updates a script's title and description.
-  function updateScript(id, title, description) {
-    const scripts = _readAll();
-    const script = scripts.find(s => s.id === id);
-    if (script) {
-      script.title = title;
-      script.description = description;
-      _writeAll(scripts);
+  async function updateScript(id, title, description) {
+    const { error } = await supabaseClient
+      .from(TABLE_NAME)
+      .update({ title: title, description: description })
+      .eq("id", id);
+
+    if (error) {
+      console.error("updateScript error:", error.message);
     }
   }
 
@@ -635,9 +660,11 @@
   /* ============================================================
      HOME VIEW
   ============================================================ */
-  function renderHome() {
+  async function renderHome() {
     const homeList = document.getElementById("homeList");
-    const scripts = getScripts(); // already newest first
+    homeList.innerHTML = `<div class="empty-state">Loading...</div>`;
+
+    const scripts = await getScripts(); // already newest first
 
     if (scripts.length === 0) {
       homeList.innerHTML = `<div class="empty-state">No scripts added yet.</div>`;
@@ -652,16 +679,23 @@
   /* ============================================================
      SCRIPTS VIEW
   ============================================================ */
-  function getFilteredScripts() {
-    const scripts = getScripts();
+  let scriptsById = {}; // cache of last-fetched scripts, keyed by id, for quick lookups
+
+  async function getFilteredScripts() {
+    const scripts = await getScripts();
+    scriptsById = {};
+    scripts.forEach(s => { scriptsById[s.id] = s; });
+
     if (currentFilter === "done") return scripts.filter(s => s.done);
     if (currentFilter === "not-done") return scripts.filter(s => !s.done);
     return scripts;
   }
 
-  function renderScripts() {
+  async function renderScripts() {
     const scriptsList = document.getElementById("scriptsList");
-    const scripts = getFilteredScripts();
+    scriptsList.innerHTML = `<div class="empty-state">Loading...</div>`;
+
+    const scripts = await getFilteredScripts();
 
     if (scripts.length === 0) {
       scriptsList.innerHTML = `<div class="empty-state">No scripts here.</div>`;
@@ -679,12 +713,13 @@
 
     // Attach listeners
     scriptsList.querySelectorAll(".script-card").forEach(card => {
-      const id = card.dataset.id;
+      const id = Number(card.dataset.id);
 
       const checkbox = card.querySelector(".script-checkbox");
       if (checkbox) {
-        checkbox.addEventListener("change", () => {
-          toggleScript(id);
+        checkbox.addEventListener("change", async () => {
+          const current = scriptsById[id];
+          await toggleScript(id, current ? current.done : false);
           renderScripts();
           renderHome();
         });
@@ -692,8 +727,8 @@
 
       const deleteBtn = card.querySelector(".delete-btn");
       if (deleteBtn) {
-        deleteBtn.addEventListener("click", () => {
-          deleteScript(id);
+        deleteBtn.addEventListener("click", async () => {
+          await deleteScript(id);
           renderScripts();
           renderHome();
         });
@@ -717,7 +752,7 @@
 
       const editSaveBtn = card.querySelector(".edit-save-btn");
       if (editSaveBtn) {
-        editSaveBtn.addEventListener("click", () => {
+        editSaveBtn.addEventListener("click", async () => {
           const titleInput = card.querySelector(".edit-title-input");
           const descInput = card.querySelector(".edit-desc-input");
           const newTitle = titleInput.value.trim();
@@ -728,7 +763,7 @@
             return;
           }
 
-          updateScript(id, newTitle, newDesc);
+          await updateScript(id, newTitle, newDesc);
           editingId = null;
           renderScripts();
           renderHome();
@@ -770,7 +805,7 @@
     newDescInput.value = "";
   }
 
-  submitAddBtn.addEventListener("click", () => {
+  submitAddBtn.addEventListener("click", async () => {
     const title = newTitleInput.value.trim();
     const description = newDescInput.value.trim();
 
@@ -779,7 +814,9 @@
       return;
     }
 
-    addScript(title, description);
+    submitAddBtn.disabled = true;
+    await addScript(title, description);
+    submitAddBtn.disabled = false;
     closeAddForm();
     renderScripts();
     renderHome();
