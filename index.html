@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logic Lagao</title>
+<style>
+  :root {
+    --bg: #121212;
+    --surface: #1a1a1a;
+    --surface-2: #212121;
+    --border: #2c2c2c;
+    --text: #ededed;
+    --text-dim: #9a9a9a;
+    --accent: #e8b84b;
+    --accent-dim: #6b5a2a;
+    --done: #4caf82;
+    --not-done: #d97a5f;
+    --danger: #d9534f;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  input, textarea {
+    font-family: inherit;
+  }
+
+  /* ---------- Password screen ---------- */
+  #passwordScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .pw-card {
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+  }
+
+  .pw-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+    margin-bottom: 28px;
+  }
+
+  .pw-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 12px;
+  }
+
+  .pw-input:focus {
+    border-color: var(--accent);
+  }
+
+  .pw-btn {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    border: none;
+    background: var(--accent);
+    color: #1a1400;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .pw-error {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 10px;
+    min-height: 16px;
+  }
+
+  /* ---------- Main app ---------- */
+  #app {
+    display: none;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+  }
+
+  .site-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 4px 0 18px;
+  }
+
+  nav.tabs {
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 18px;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    padding: 10px 4px;
+    margin-right: 18px;
+    font-size: 15px;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+  }
+
+  .tab-btn.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  h2.section-heading {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin: 0 0 12px;
+  }
+
+  /* Filters + add button row */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filters {
+    display: flex;
+    gap: 6px;
+  }
+
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+
+  .filter-btn.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+
+  .add-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #1a1400;
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Add-script form */
+  .add-form {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+
+  .add-form.active { display: block; }
+
+  .add-form label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .add-form input,
+  .add-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 12px;
+    resize: vertical;
+  }
+
+  .add-form input:focus,
+  .add-form textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .btn {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #1a1400;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  /* Script cards */
+  .script-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .script-checkbox {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .script-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .script-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    word-break: break-word;
+  }
+
+  .script-title.done {
+    text-decoration: line-through;
+    color: var(--text-dim);
+  }
+
+  .script-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 0 0 8px;
+    word-break: break-word;
+  }
+
+  .script-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+  }
+
+  .status-badge {
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+
+  .status-badge.done {
+    background: rgba(76, 175, 130, 0.15);
+    color: var(--done);
+  }
+
+  .status-badge.not-done {
+    background: rgba(217, 122, 95, 0.15);
+    color: var(--not-done);
+  }
+
+  .date-text {
+    color: var(--text-dim);
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px 6px;
+    flex-shrink: 0;
+  }
+
+  .delete-btn:hover {
+    color: var(--danger);
+  }
+
+  .edit-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1;
+    padding: 4px 6px;
+    flex-shrink: 0;
+  }
+
+  .edit-btn:hover {
+    color: var(--accent);
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .edit-form {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .edit-form input,
+  .edit-form textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 8px;
+    resize: vertical;
+  }
+
+  .edit-form input:focus,
+  .edit-form textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .edit-form-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .empty-state {
+    color: var(--text-dim);
+    font-size: 14px;
+    padding: 30px 0;
+    text-align: center;
+  }
+
+  @media (max-width: 480px) {
+    .toolbar { align-items: center; }
+    .site-title { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- PAGE 1: PASSWORD -->
+  <div id="passwordScreen">
+    <div class="pw-card">
+      <div class="pw-title">Logic Lagao</div>
+      <input type="password" id="passwordInput" class="pw-input" placeholder="Password" autocomplete="off">
+      <button class="pw-btn" id="enterBtn">Enter</button>
+      <div class="pw-error" id="pwError"></div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: MAIN APP -->
+  <div id="app">
+    <div class="site-title">Logic Lagao</div>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="home">Home</button>
+      <button class="tab-btn" data-tab="scripts">Scripts</button>
+    </nav>
+
+    <!-- HOME VIEW -->
+    <div class="view active" id="homeView">
+      <h2 class="section-heading">Recently added</h2>
+      <div id="homeList"></div>
+    </div>
+
+    <!-- SCRIPTS VIEW -->
+    <div class="view" id="scriptsView">
+      <div class="toolbar">
+        <div class="filters">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="not-done">Not Done</button>
+          <button class="filter-btn" data-filter="done">Done</button>
+        </div>
+        <button class="add-btn" id="showAddFormBtn" title="Add script">+</button>
+      </div>
+
+      <div class="add-form" id="addForm">
+        <label for="newTitle">Idea / Title</label>
+        <input type="text" id="newTitle" placeholder="e.g. Why cats hate water">
+
+        <label for="newDesc">Description</label>
+        <textarea id="newDesc" rows="3" placeholder="Short description of the script"></textarea>
+
+        <div class="form-actions">
+          <button class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
+          <button class="btn btn-primary" id="submitAddBtn">Add Script</button>
+        </div>
+      </div>
+
+      <div id="scriptsList"></div>
+    </div>
+  </div>
+
+<script>
+  /* ============================================================
+     CONFIG
+  ============================================================ */
+  const SITE_PASSWORD = "ll123"; // change this password as needed
+
+  /* ============================================================
+     DATA LAYER
+     All data operations live here. To move to a cloud database
+     (e.g. Supabase) later, only the functions in this section
+     need to change — the UI code below never touches storage
+     directly.
+  ============================================================ */
+  const STORAGE_KEY = "logicLagaoScripts";
+
+  function _readAll() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }
+
+  function _writeAll(scripts) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(scripts));
+  }
+
+  // Returns all scripts, newest first.
+  function getScripts() {
+    const scripts = _readAll();
+    return scripts.slice().sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  // Adds a new script. Returns the created script.
+  function addScript(title, description) {
+    const scripts = _readAll();
+    const newScript = {
+      id: Date.now().toString(),
+      title: title,
+      description: description,
+      done: false,
+      createdAt: Date.now()
+    };
+    scripts.push(newScript);
+    _writeAll(scripts);
+    return newScript;
+  }
+
+  // Toggles a script's done status.
+  function toggleScript(id) {
+    const scripts = _readAll();
+    const script = scripts.find(s => s.id === id);
+    if (script) {
+      script.done = !script.done;
+      _writeAll(scripts);
+    }
+  }
+
+  // Deletes a script by id.
+  function deleteScript(id) {
+    const scripts = _readAll().filter(s => s.id !== id);
+    _writeAll(scripts);
+  }
+
+  // Updates a script's title and description.
+  function updateScript(id, title, description) {
+    const scripts = _readAll();
+    const script = scripts.find(s => s.id === id);
+    if (script) {
+      script.title = title;
+      script.description = description;
+      _writeAll(scripts);
+    }
+  }
+
+  /* ============================================================
+     UI STATE
+  ============================================================ */
+  let currentFilter = "all"; // all | done | not-done
+  let editingId = null; // id of the script currently being edited, or null
+
+  /* ============================================================
+     PASSWORD SCREEN
+  ============================================================ */
+  const passwordScreen = document.getElementById("passwordScreen");
+  const appEl = document.getElementById("app");
+  const passwordInput = document.getElementById("passwordInput");
+  const enterBtn = document.getElementById("enterBtn");
+  const pwError = document.getElementById("pwError");
+
+  function tryEnter() {
+    if (passwordInput.value === SITE_PASSWORD) {
+      passwordScreen.style.display = "none";
+      appEl.style.display = "block";
+      renderHome();
+      renderScripts();
+    } else {
+      pwError.textContent = "Incorrect password";
+    }
+  }
+
+  enterBtn.addEventListener("click", tryEnter);
+  passwordInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") tryEnter();
+  });
+
+  /* ============================================================
+     TABS
+  ============================================================ */
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  const views = {
+    home: document.getElementById("homeView"),
+    scripts: document.getElementById("scriptsView")
+  };
+
+  tabButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      tabButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      Object.values(views).forEach(v => v.classList.remove("active"));
+      views[btn.dataset.tab].classList.add("active");
+      if (btn.dataset.tab === "home") renderHome();
+      if (btn.dataset.tab === "scripts") renderScripts();
+    });
+  });
+
+  /* ============================================================
+     RENDER HELPERS
+  ============================================================ */
+  function formatDate(timestamp) {
+    const d = new Date(timestamp);
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function scriptCardHtml(script, { withCheckbox, withDelete, withEdit, editing }) {
+    const doneClass = script.done ? "done" : "not-done";
+    const statusText = script.done ? "Done" : "Not Done";
+
+    if (withEdit && editing) {
+      return `
+        <div class="script-card" data-id="${script.id}">
+          <div class="edit-form">
+            <input type="text" class="edit-title-input" value="${escapeHtml(script.title)}">
+            <textarea class="edit-desc-input" rows="3">${escapeHtml(script.description)}</textarea>
+            <div class="edit-form-actions">
+              <button class="btn btn-secondary edit-cancel-btn">Cancel</button>
+              <button class="btn btn-primary edit-save-btn">Save</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="script-card" data-id="${script.id}">
+        ${withCheckbox ? `<input type="checkbox" class="script-checkbox" ${script.done ? "checked" : ""}>` : ""}
+        <div class="script-body">
+          <p class="script-title ${script.done ? "done" : ""}">${escapeHtml(script.title)}</p>
+          <p class="script-desc">${escapeHtml(script.description)}</p>
+          <div class="script-meta">
+            <span class="status-badge ${doneClass}">${statusText}</span>
+            <span class="date-text">${formatDate(script.createdAt)}</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          ${withEdit ? `<button class="edit-btn" title="Edit">&#9998;</button>` : ""}
+          ${withDelete ? `<button class="delete-btn" title="Delete">&times;</button>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  /* ============================================================
+     HOME VIEW
+  ============================================================ */
+  function renderHome() {
+    const homeList = document.getElementById("homeList");
+    const scripts = getScripts(); // already newest first
+
+    if (scripts.length === 0) {
+      homeList.innerHTML = `<div class="empty-state">No scripts added yet.</div>`;
+      return;
+    }
+
+    homeList.innerHTML = scripts
+      .map(s => scriptCardHtml(s, { withCheckbox: false, withDelete: false, withEdit: false, editing: false }))
+      .join("");
+  }
+
+  /* ============================================================
+     SCRIPTS VIEW
+  ============================================================ */
+  function getFilteredScripts() {
+    const scripts = getScripts();
+    if (currentFilter === "done") return scripts.filter(s => s.done);
+    if (currentFilter === "not-done") return scripts.filter(s => !s.done);
+    return scripts;
+  }
+
+  function renderScripts() {
+    const scriptsList = document.getElementById("scriptsList");
+    const scripts = getFilteredScripts();
+
+    if (scripts.length === 0) {
+      scriptsList.innerHTML = `<div class="empty-state">No scripts here.</div>`;
+      return;
+    }
+
+    scriptsList.innerHTML = scripts
+      .map(s => scriptCardHtml(s, {
+        withCheckbox: true,
+        withDelete: true,
+        withEdit: true,
+        editing: s.id === editingId
+      }))
+      .join("");
+
+    // Attach listeners
+    scriptsList.querySelectorAll(".script-card").forEach(card => {
+      const id = card.dataset.id;
+
+      const checkbox = card.querySelector(".script-checkbox");
+      if (checkbox) {
+        checkbox.addEventListener("change", () => {
+          toggleScript(id);
+          renderScripts();
+          renderHome();
+        });
+      }
+
+      const deleteBtn = card.querySelector(".delete-btn");
+      if (deleteBtn) {
+        deleteBtn.addEventListener("click", () => {
+          deleteScript(id);
+          renderScripts();
+          renderHome();
+        });
+      }
+
+      const editBtn = card.querySelector(".edit-btn");
+      if (editBtn) {
+        editBtn.addEventListener("click", () => {
+          editingId = id;
+          renderScripts();
+        });
+      }
+
+      const editCancelBtn = card.querySelector(".edit-cancel-btn");
+      if (editCancelBtn) {
+        editCancelBtn.addEventListener("click", () => {
+          editingId = null;
+          renderScripts();
+        });
+      }
+
+      const editSaveBtn = card.querySelector(".edit-save-btn");
+      if (editSaveBtn) {
+        editSaveBtn.addEventListener("click", () => {
+          const titleInput = card.querySelector(".edit-title-input");
+          const descInput = card.querySelector(".edit-desc-input");
+          const newTitle = titleInput.value.trim();
+          const newDesc = descInput.value.trim();
+
+          if (!newTitle) {
+            titleInput.focus();
+            return;
+          }
+
+          updateScript(id, newTitle, newDesc);
+          editingId = null;
+          renderScripts();
+          renderHome();
+        });
+      }
+    });
+  }
+
+  /* Filter buttons */
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.filter;
+      renderScripts();
+    });
+  });
+
+  /* ============================================================
+     ADD SCRIPT FORM
+  ============================================================ */
+  const addForm = document.getElementById("addForm");
+  const showAddFormBtn = document.getElementById("showAddFormBtn");
+  const cancelAddBtn = document.getElementById("cancelAddBtn");
+  const submitAddBtn = document.getElementById("submitAddBtn");
+  const newTitleInput = document.getElementById("newTitle");
+  const newDescInput = document.getElementById("newDesc");
+
+  showAddFormBtn.addEventListener("click", () => {
+    addForm.classList.add("active");
+    newTitleInput.focus();
+  });
+
+  cancelAddBtn.addEventListener("click", closeAddForm);
+
+  function closeAddForm() {
+    addForm.classList.remove("active");
+    newTitleInput.value = "";
+    newDescInput.value = "";
+  }
+
+  submitAddBtn.addEventListener("click", () => {
+    const title = newTitleInput.value.trim();
+    const description = newDescInput.value.trim();
+
+    if (!title) {
+      newTitleInput.focus();
+      return;
+    }
+
+    addScript(title, description);
+    closeAddForm();
+    renderScripts();
+    renderHome();
+  });
+</script>
+</body>
+</html>
