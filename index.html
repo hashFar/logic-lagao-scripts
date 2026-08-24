@@ -17,8 +17,26 @@
          --accent-dim: #6b5a2a;
          --done: #4caf82;
          --not-done: #d97a5f;
+         --approved: #5aa9e6;
+         --not-approved: #9a9a9a;
          --danger: #d9534f;
          --radius: 10px;
+      }
+
+      [data-theme="light"] {
+         --bg: #f5f5f4;
+         --surface: #ffffff;
+         --surface-2: #f0f0ef;
+         --border: #e0dfdc;
+         --text: #1c1c1c;
+         --text-dim: #6f6f6f;
+         --accent: #b8860b;
+         --accent-dim: #f1e2b8;
+         --done: #2f8f63;
+         --not-done: #c15f42;
+         --approved: #2f7fc1;
+         --not-approved: #6f6f6f;
+         --danger: #c0392b;
       }
 
       * {
@@ -152,6 +170,37 @@
          border-color: var(--accent);
       }
 
+      .header-actions {
+         display: flex;
+         align-items: center;
+         gap: 8px;
+         flex-shrink: 0;
+      }
+
+      .theme-toggle-btn {
+         width: 32px;
+         height: 32px;
+         border-radius: 50%;
+         border: 1px solid var(--border);
+         background: transparent;
+         color: var(--text-dim);
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         flex-shrink: 0;
+         padding: 0;
+      }
+
+      .theme-toggle-btn:hover {
+         color: var(--accent);
+         border-color: var(--accent);
+      }
+
+      .theme-toggle-btn svg {
+         width: 16px;
+         height: 16px;
+      }
+
       nav.tabs {
          display: flex;
          gap: 6px;
@@ -204,6 +253,7 @@
       .filters {
          display: flex;
          gap: 6px;
+         flex-wrap: wrap;
       }
 
       .filter-btn {
@@ -314,10 +364,30 @@
          margin-bottom: 10px;
       }
 
+      .status-checks {
+         display: flex;
+         flex-direction: column;
+         gap: 8px;
+         flex-shrink: 0;
+         margin-top: 1px;
+      }
+
+      .status-check-item {
+         display: flex;
+         align-items: center;
+         gap: 6px;
+      }
+
+      .status-check-item label {
+         font-size: 11px;
+         color: var(--text-dim);
+         white-space: nowrap;
+         cursor: pointer;
+      }
+
       .script-checkbox {
-         width: 20px;
-         height: 20px;
-         margin-top: 2px;
+         width: 18px;
+         height: 18px;
          accent-color: var(--accent);
          flex-shrink: 0;
          cursor: pointer;
@@ -350,8 +420,9 @@
       .script-meta {
          display: flex;
          align-items: center;
-         gap: 10px;
+         gap: 8px;
          font-size: 12px;
+         flex-wrap: wrap;
       }
 
       .status-badge {
@@ -368,6 +439,16 @@
       .status-badge.not-done {
          background: rgba(217, 122, 95, 0.15);
          color: var(--not-done);
+      }
+
+      .status-badge.approved {
+         background: rgba(90, 169, 230, 0.15);
+         color: var(--approved);
+      }
+
+      .status-badge.not-approved {
+         background: rgba(154, 154, 154, 0.15);
+         color: var(--not-approved);
       }
 
       .date-text {
@@ -475,7 +556,11 @@
    <div id="app">
       <div class="app-header">
          <div class="site-title">Logic Lagao</div>
-         <button class="logout-btn" id="logoutBtn">Logout</button>
+         <div class="header-actions">
+            <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle theme"
+               aria-label="Toggle theme"></button>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+         </div>
       </div>
 
       <nav class="tabs">
@@ -494,6 +579,8 @@
          <div class="toolbar">
             <div class="filters">
                <button class="filter-btn active" data-filter="all">All</button>
+               <button class="filter-btn" data-filter="not-approved">Not Approved</button>
+               <button class="filter-btn" data-filter="approved">Approved</button>
                <button class="filter-btn" data-filter="not-done">Not Done</button>
                <button class="filter-btn" data-filter="done">Done</button>
             </div>
@@ -526,6 +613,41 @@
 
 
       /* ============================================================
+         THEME
+         Applies and persists the dark/light theme. Runs immediately
+         so the correct theme is set before the login screen shows.
+      ============================================================ */
+      const THEME_STORAGE_KEY = "logicLagaoTheme";
+
+      const MOON_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+      const SUN_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+
+      function getSavedTheme() {
+         const saved = localStorage.getItem(THEME_STORAGE_KEY);
+         return saved === "light" ? "light" : "dark"; // default to dark
+      }
+
+      function applyTheme(theme) {
+         if (theme === "light") {
+            document.documentElement.setAttribute("data-theme", "light");
+         } else {
+            document.documentElement.removeAttribute("data-theme");
+         }
+         localStorage.setItem(THEME_STORAGE_KEY, theme);
+
+         const btn = document.getElementById("themeToggleBtn");
+         if (btn) {
+            // Icon shows the theme the click will switch TO,
+            // per the requirement: moon while dark, sun while light.
+            btn.innerHTML = theme === "light" ? SUN_ICON : MOON_ICON;
+         }
+      }
+
+      let currentTheme = getSavedTheme();
+      applyTheme(currentTheme);
+
+
+      /* ============================================================
          DATA LAYER
          All data operations live here, backed by Supabase. The UI
          code below only calls these functions and never talks to
@@ -546,6 +668,7 @@
             title: row.title,
             description: row.description || "",
             done: row.done,
+            approved: row.approved,
             createdAt: row.created_at
          };
       }
@@ -568,7 +691,7 @@
       async function addScript(title, description) {
          const {data, error} = await supabaseClient
             .from(TABLE_NAME)
-            .insert([{title: title, description: description, done: false}])
+            .insert([{title: title, description: description, done: false, approved: false}])
             .select()
             .single();
 
@@ -580,14 +703,26 @@
       }
 
       // Toggles a script's done status. `currentDone` is the value before toggling.
-      async function toggleScript(id, currentDone) {
+      async function toggleDone(id, currentDone) {
          const {error} = await supabaseClient
             .from(TABLE_NAME)
             .update({done: !currentDone})
             .eq("id", id);
 
          if (error) {
-            console.error("toggleScript error:", error.message);
+            console.error("toggleDone error:", error.message);
+         }
+      }
+
+      // Toggles a script's approved status. `currentApproved` is the value before toggling.
+      async function toggleApproved(id, currentApproved) {
+         const {error} = await supabaseClient
+            .from(TABLE_NAME)
+            .update({approved: !currentApproved})
+            .eq("id", id);
+
+         if (error) {
+            console.error("toggleApproved error:", error.message);
          }
       }
 
@@ -618,7 +753,7 @@
       /* ============================================================
          UI STATE
       ============================================================ */
-      let currentFilter = "all"; // all | done | not-done
+      let currentFilter = "all"; // all | approved | not-approved | done | not-done
       let editingId = null; // id of the script currently being edited, or null
 
       /* ============================================================
@@ -633,6 +768,12 @@ LOGIN SCREEN - SUPABASE AUTH
       const enterBtn = document.getElementById("enterBtn");
       const pwError = document.getElementById("pwError");
       const logoutBtn = document.getElementById("logoutBtn");
+      const themeToggleBtn = document.getElementById("themeToggleBtn");
+
+      themeToggleBtn.addEventListener("click", () => {
+         currentTheme = currentTheme === "light" ? "dark" : "light";
+         applyTheme(currentTheme);
+      });
 
       async function tryEnter() {
          const email = emailInput.value.trim();
@@ -740,9 +881,11 @@ LOGIN SCREEN - SUPABASE AUTH
          return div.innerHTML;
       }
 
-      function scriptCardHtml(script, {withCheckbox, withDelete, withEdit, editing}) {
+      function scriptCardHtml(script, {withCheckboxes, withDelete, withEdit, editing}) {
          const doneClass = script.done ? "done" : "not-done";
-         const statusText = script.done ? "Done" : "Not Done";
+         const doneText = script.done ? "Done" : "Not Done";
+         const approvedClass = script.approved ? "approved" : "not-approved";
+         const approvedText = script.approved ? "Approved" : "Not Approved";
 
          if (withEdit && editing) {
             return `
@@ -761,12 +904,24 @@ LOGIN SCREEN - SUPABASE AUTH
 
          return `
       <div class="script-card" data-id="${script.id}">
-        ${withCheckbox ? `<input type="checkbox" class="script-checkbox" ${script.done ? "checked" : ""}>` : ""}
+        ${withCheckboxes ? `
+        <div class="status-checks">
+          <div class="status-check-item">
+            <input type="checkbox" class="approved-checkbox" id="approved-${script.id}" ${script.approved ? "checked" : ""}>
+            <label for="approved-${script.id}">Approved</label>
+          </div>
+          <div class="status-check-item">
+            <input type="checkbox" class="done-checkbox" id="done-${script.id}" ${script.done ? "checked" : ""}>
+            <label for="done-${script.id}">Done</label>
+          </div>
+        </div>
+        ` : ""}
         <div class="script-body">
           <p class="script-title ${script.done ? "done" : ""}">${escapeHtml(script.title)}</p>
           <p class="script-desc">${escapeHtml(script.description)}</p>
           <div class="script-meta">
-            <span class="status-badge ${doneClass}">${statusText}</span>
+            <span class="status-badge ${approvedClass}">${approvedText}</span>
+            <span class="status-badge ${doneClass}">${doneText}</span>
             <span class="date-text">${formatDate(script.createdAt)}</span>
           </div>
         </div>
@@ -793,7 +948,7 @@ LOGIN SCREEN - SUPABASE AUTH
          }
 
          homeList.innerHTML = scripts
-            .map(s => scriptCardHtml(s, {withCheckbox: false, withDelete: false, withEdit: false, editing: false}))
+            .map(s => scriptCardHtml(s, {withCheckboxes: false, withDelete: false, withEdit: false, editing: false}))
             .join("");
       }
 
@@ -809,6 +964,8 @@ LOGIN SCREEN - SUPABASE AUTH
 
          if (currentFilter === "done") return scripts.filter(s => s.done);
          if (currentFilter === "not-done") return scripts.filter(s => !s.done);
+         if (currentFilter === "approved") return scripts.filter(s => s.approved);
+         if (currentFilter === "not-approved") return scripts.filter(s => !s.approved);
          return scripts;
       }
 
@@ -825,7 +982,7 @@ LOGIN SCREEN - SUPABASE AUTH
 
          scriptsList.innerHTML = scripts
             .map(s => scriptCardHtml(s, {
-               withCheckbox: true,
+               withCheckboxes: true,
                withDelete: true,
                withEdit: true,
                editing: s.id === editingId
@@ -836,11 +993,21 @@ LOGIN SCREEN - SUPABASE AUTH
          scriptsList.querySelectorAll(".script-card").forEach(card => {
             const id = Number(card.dataset.id);
 
-            const checkbox = card.querySelector(".script-checkbox");
-            if (checkbox) {
-               checkbox.addEventListener("change", async () => {
+            const approvedCheckbox = card.querySelector(".approved-checkbox");
+            if (approvedCheckbox) {
+               approvedCheckbox.addEventListener("change", async () => {
                   const current = scriptsById[id];
-                  await toggleScript(id, current ? current.done : false);
+                  await toggleApproved(id, current ? current.approved : false);
+                  renderScripts();
+                  renderHome();
+               });
+            }
+
+            const doneCheckbox = card.querySelector(".done-checkbox");
+            if (doneCheckbox) {
+               doneCheckbox.addEventListener("change", async () => {
+                  const current = scriptsById[id];
+                  await toggleDone(id, current ? current.done : false);
                   renderScripts();
                   renderHome();
                });
