@@ -5,6 +5,7 @@
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <title>Logic Lagao</title>
+   <link rel="icon" type="image/jpg" href="logo.jpg">
    <style>
       :root {
          --bg: #121212;
@@ -526,6 +527,12 @@
          text-align: center;
       }
 
+      .inline-error {
+         color: var(--danger);
+         font-size: 12px;
+         margin-top: 6px;
+      }
+
       @media (max-width: 480px) {
          .toolbar {
             align-items: center;
@@ -652,7 +659,10 @@
          All data operations live here, backed by Supabase. The UI
          code below only calls these functions and never talks to
          Supabase directly, so the backend can be swapped again later
-         without touching the UI.
+         without touching the UI. Every mutating function returns
+         { error } (and, where relevant, the created/updated data) so
+         the UI layer can do optimistic updates and roll back on
+         failure without re-fetching everything.
       ============================================================ */
       const SUPABASE_URL = "https://lvsohmtmydjvuwiptvvs.supabase.co";
       const SUPABASE_ANON_KEY = "sb_publishable_07ljO6sChQRYpMyQGDEgLg_7RGz37RL";
@@ -673,7 +683,7 @@
          };
       }
 
-      // Returns all scripts, newest first.
+      // Returns all scripts, newest first. Used only for the initial load.
       async function getScripts() {
          const {data, error} = await supabaseClient
             .from(TABLE_NAME)
@@ -712,6 +722,7 @@
          if (error) {
             console.error("toggleDone error:", error.message);
          }
+         return {error};
       }
 
       // Toggles a script's approved status. `currentApproved` is the value before toggling.
@@ -724,6 +735,7 @@
          if (error) {
             console.error("toggleApproved error:", error.message);
          }
+         return {error};
       }
 
       // Deletes a script by id.
@@ -736,6 +748,7 @@
          if (error) {
             console.error("deleteScript error:", error.message);
          }
+         return {error};
       }
 
       // Updates a script's title and description.
@@ -748,11 +761,17 @@
          if (error) {
             console.error("updateScript error:", error.message);
          }
+         return {error};
       }
 
       /* ============================================================
          UI STATE
+         `allScripts` is the local, in-memory cache of every script,
+         always kept newest-first. Supabase is only queried on
+         initial load; every other operation reads/writes this array
+         and patches the DOM directly.
       ============================================================ */
+      let allScripts = [];
       let currentFilter = "all"; // all | approved | not-approved | done | not-done
       let editingId = null; // id of the script currently being edited, or null
 
@@ -804,11 +823,10 @@ LOGIN SCREEN - SUPABASE AUTH
          showApp();
       }
 
-      function showApp() {
+      async function showApp() {
          passwordScreen.style.display = "none";
          appEl.style.display = "block";
-         renderHome();
-         renderScripts();
+         await loadInitialData();
       }
 
       function showLogin() {
@@ -849,6 +867,8 @@ LOGIN SCREEN - SUPABASE AUTH
 
       /* ============================================================
          TABS
+         Switching tabs never re-fetches from Supabase — it just
+         re-renders from the local `allScripts` cache.
       ============================================================ */
       const tabButtons = document.querySelectorAll(".tab-btn");
       const views = {
@@ -862,8 +882,8 @@ LOGIN SCREEN - SUPABASE AUTH
             btn.classList.add("active");
             Object.values(views).forEach(v => v.classList.remove("active"));
             views[btn.dataset.tab].classList.add("active");
-            if (btn.dataset.tab === "home") renderHome();
-            if (btn.dataset.tab === "scripts") renderScripts();
+            if (btn.dataset.tab === "home") renderHomeList();
+            if (btn.dataset.tab === "scripts") renderScriptsList();
          });
       });
 
@@ -920,8 +940,8 @@ LOGIN SCREEN - SUPABASE AUTH
           <p class="script-title ${script.done ? "done" : ""}">${escapeHtml(script.title)}</p>
           <p class="script-desc">${escapeHtml(script.description)}</p>
           <div class="script-meta">
-            <span class="status-badge ${approvedClass}">${approvedText}</span>
-            <span class="status-badge ${doneClass}">${doneText}</span>
+            <span class="status-badge approved-badge ${approvedClass}">${approvedText}</span>
+            <span class="status-badge done-badge ${doneClass}">${doneText}</span>
             <span class="date-text">${formatDate(script.createdAt)}</span>
           </div>
         </div>
@@ -933,140 +953,341 @@ LOGIN SCREEN - SUPABASE AUTH
     `;
       }
 
+      // Builds a detached DOM element for a script card (used for
+      // inserting/replacing single cards without rebuilding lists).
+      function buildCardElement(script, opts) {
+         const wrapper = document.createElement("div");
+         wrapper.innerHTML = scriptCardHtml(script, opts).trim();
+         return wrapper.firstElementChild;
+      }
+
+      function showCardError(cardEl, message) {
+         const container = cardEl.querySelector(".script-body") || cardEl.querySelector(".edit-form") || cardEl;
+         let err = container.querySelector(".inline-error");
+         if (!err) {
+            err = document.createElement("div");
+            err.className = "inline-error";
+            container.appendChild(err);
+         }
+         err.textContent = message;
+         setTimeout(() => {
+            if (err && err.parentNode) err.remove();
+         }, 3000);
+      }
+
+      function showFormError(message) {
+         let err = addForm.querySelector(".inline-error");
+         if (!err) {
+            err = document.createElement("div");
+            err.className = "inline-error";
+            addForm.insertBefore(err, addForm.querySelector(".form-actions"));
+         }
+         err.textContent = message;
+         setTimeout(() => {
+            if (err && err.parentNode) err.remove();
+         }, 3000);
+      }
+
+      function scriptMatchesCurrentFilter(script) {
+         if (currentFilter === "done") return script.done;
+         if (currentFilter === "not-done") return !script.done;
+         if (currentFilter === "approved") return script.approved;
+         if (currentFilter === "not-approved") return !script.approved;
+         return true; // all
+      }
+
+      function updateBadgesAndTitle(cardEl, script) {
+         const titleEl = cardEl.querySelector(".script-title");
+         if (titleEl) titleEl.classList.toggle("done", script.done);
+
+         const approvedBadge = cardEl.querySelector(".approved-badge");
+         if (approvedBadge) {
+            approvedBadge.classList.remove("approved", "not-approved");
+            approvedBadge.classList.add(script.approved ? "approved" : "not-approved");
+            approvedBadge.textContent = script.approved ? "Approved" : "Not Approved";
+         }
+
+         const doneBadge = cardEl.querySelector(".done-badge");
+         if (doneBadge) {
+            doneBadge.classList.remove("done", "not-done");
+            doneBadge.classList.add(script.done ? "done" : "not-done");
+            doneBadge.textContent = script.done ? "Done" : "Not Done";
+         }
+      }
+
+      // Updates the badges/title on this script's card in both Home
+      // and Scripts views (whichever of them currently exist in the DOM).
+      function syncCardEverywhere(script) {
+         const scriptsCard = scriptsList.querySelector(`.script-card[data-id="${script.id}"]`);
+         if (scriptsCard) updateBadgesAndTitle(scriptsCard, script);
+
+         const homeCard = homeList.querySelector(`.script-card[data-id="${script.id}"]`);
+         if (homeCard) updateBadgesAndTitle(homeCard, script);
+      }
+
+      function removeEmptyState(container) {
+         const empty = container.querySelector(".empty-state");
+         if (empty) empty.remove();
+      }
+
+      function ensureEmptyStateIfNeeded(container, message) {
+         if (!container.querySelector(".script-card")) {
+            container.innerHTML = `<div class="empty-state">${message}</div>`;
+         }
+      }
+
       /* ============================================================
          HOME VIEW
+         Rendered entirely from the local `allScripts` cache.
       ============================================================ */
-      async function renderHome() {
-         const homeList = document.getElementById("homeList");
-         homeList.innerHTML = `<div class="empty-state">Loading...</div>`;
+      const homeList = document.getElementById("homeList");
 
-         const scripts = await getScripts(); // already newest first
-
-         if (scripts.length === 0) {
+      function renderHomeList() {
+         if (allScripts.length === 0) {
             homeList.innerHTML = `<div class="empty-state">No scripts added yet.</div>`;
             return;
          }
-
-         homeList.innerHTML = scripts
-            .map(s => scriptCardHtml(s, {withCheckboxes: false, withDelete: false, withEdit: false, editing: false}))
-            .join("");
+         homeList.innerHTML = "";
+         allScripts.forEach(script => {
+            const cardEl = buildCardElement(script, {withCheckboxes: false, withDelete: false, withEdit: false, editing: false});
+            homeList.appendChild(cardEl);
+         });
       }
 
       /* ============================================================
          SCRIPTS VIEW
+         Rendered entirely from the local `allScripts` cache, filtered
+         in memory. Individual operations (toggle/add/edit/delete)
+         patch this list directly instead of calling this function.
       ============================================================ */
-      let scriptsById = {}; // cache of last-fetched scripts, keyed by id, for quick lookups
+      const scriptsList = document.getElementById("scriptsList");
 
-      async function getFilteredScripts() {
-         const scripts = await getScripts();
-         scriptsById = {};
-         scripts.forEach(s => {scriptsById[s.id] = s;});
-
-         if (currentFilter === "done") return scripts.filter(s => s.done);
-         if (currentFilter === "not-done") return scripts.filter(s => !s.done);
-         if (currentFilter === "approved") return scripts.filter(s => s.approved);
-         if (currentFilter === "not-approved") return scripts.filter(s => !s.approved);
-         return scripts;
+      function getFilteredFromState() {
+         if (currentFilter === "done") return allScripts.filter(s => s.done);
+         if (currentFilter === "not-done") return allScripts.filter(s => !s.done);
+         if (currentFilter === "approved") return allScripts.filter(s => s.approved);
+         if (currentFilter === "not-approved") return allScripts.filter(s => !s.approved);
+         return allScripts;
       }
 
-      async function renderScripts() {
-         const scriptsList = document.getElementById("scriptsList");
-         scriptsList.innerHTML = `<div class="empty-state">Loading...</div>`;
-
-         const scripts = await getFilteredScripts();
+      function renderScriptsList() {
+         const scripts = getFilteredFromState();
 
          if (scripts.length === 0) {
             scriptsList.innerHTML = `<div class="empty-state">No scripts here.</div>`;
             return;
          }
 
-         scriptsList.innerHTML = scripts
-            .map(s => scriptCardHtml(s, {
+         scriptsList.innerHTML = "";
+         scripts.forEach(script => {
+            const cardEl = buildCardElement(script, {
                withCheckboxes: true,
                withDelete: true,
                withEdit: true,
-               editing: s.id === editingId
-            }))
-            .join("");
-
-         // Attach listeners
-         scriptsList.querySelectorAll(".script-card").forEach(card => {
-            const id = Number(card.dataset.id);
-
-            const approvedCheckbox = card.querySelector(".approved-checkbox");
-            if (approvedCheckbox) {
-               approvedCheckbox.addEventListener("change", async () => {
-                  const current = scriptsById[id];
-                  await toggleApproved(id, current ? current.approved : false);
-                  renderScripts();
-                  renderHome();
-               });
-            }
-
-            const doneCheckbox = card.querySelector(".done-checkbox");
-            if (doneCheckbox) {
-               doneCheckbox.addEventListener("change", async () => {
-                  const current = scriptsById[id];
-                  await toggleDone(id, current ? current.done : false);
-                  renderScripts();
-                  renderHome();
-               });
-            }
-
-            const deleteBtn = card.querySelector(".delete-btn");
-            if (deleteBtn) {
-               deleteBtn.addEventListener("click", async () => {
-                  await deleteScript(id);
-                  renderScripts();
-                  renderHome();
-               });
-            }
-
-            const editBtn = card.querySelector(".edit-btn");
-            if (editBtn) {
-               editBtn.addEventListener("click", () => {
-                  editingId = id;
-                  renderScripts();
-               });
-            }
-
-            const editCancelBtn = card.querySelector(".edit-cancel-btn");
-            if (editCancelBtn) {
-               editCancelBtn.addEventListener("click", () => {
-                  editingId = null;
-                  renderScripts();
-               });
-            }
-
-            const editSaveBtn = card.querySelector(".edit-save-btn");
-            if (editSaveBtn) {
-               editSaveBtn.addEventListener("click", async () => {
-                  const titleInput = card.querySelector(".edit-title-input");
-                  const descInput = card.querySelector(".edit-desc-input");
-                  const newTitle = titleInput.value.trim();
-                  const newDesc = descInput.value.trim();
-
-                  if (!newTitle) {
-                     titleInput.focus();
-                     return;
-                  }
-
-                  await updateScript(id, newTitle, newDesc);
-                  editingId = null;
-                  renderScripts();
-                  renderHome();
-               });
-            }
+               editing: script.id === editingId
+            });
+            attachCardListeners(cardEl, script);
+            scriptsList.appendChild(cardEl);
          });
       }
 
-      /* Filter buttons */
+      /* ============================================================
+         PER-CARD EVENT HANDLERS
+         Each handler updates local state + the DOM directly, and
+         only re-syncs with Supabase for its own single operation.
+      ============================================================ */
+      function attachCardListeners(cardEl, script) {
+         const id = script.id;
+
+         const approvedCheckbox = cardEl.querySelector(".approved-checkbox");
+         if (approvedCheckbox) {
+            approvedCheckbox.addEventListener("change", () => handleToggleApproved(id, cardEl));
+         }
+
+         const doneCheckbox = cardEl.querySelector(".done-checkbox");
+         if (doneCheckbox) {
+            doneCheckbox.addEventListener("change", () => handleToggleDone(id, cardEl));
+         }
+
+         const deleteBtn = cardEl.querySelector(".delete-btn");
+         if (deleteBtn) {
+            deleteBtn.addEventListener("click", () => handleDelete(id, cardEl));
+         }
+
+         const editBtn = cardEl.querySelector(".edit-btn");
+         if (editBtn) {
+            editBtn.addEventListener("click", () => handleEditStart(id));
+         }
+
+         const editCancelBtn = cardEl.querySelector(".edit-cancel-btn");
+         if (editCancelBtn) {
+            editCancelBtn.addEventListener("click", () => handleEditCancel(id));
+         }
+
+         const editSaveBtn = cardEl.querySelector(".edit-save-btn");
+         if (editSaveBtn) {
+            editSaveBtn.addEventListener("click", () => handleEditSave(id, cardEl));
+         }
+      }
+
+      async function handleToggleApproved(id, cardEl) {
+         const script = allScripts.find(s => s.id === id);
+         if (!script) return;
+
+         const checkbox = cardEl.querySelector(".approved-checkbox");
+         const previousApproved = script.approved;
+         const nextApproved = !previousApproved;
+
+         // Optimistic update
+         script.approved = nextApproved;
+         if (checkbox) checkbox.disabled = true;
+         syncCardEverywhere(script);
+
+         const {error} = await toggleApproved(id, previousApproved);
+
+         if (checkbox) checkbox.disabled = false;
+
+         if (error) {
+            // Revert on failure
+            script.approved = previousApproved;
+            if (checkbox) checkbox.checked = previousApproved;
+            syncCardEverywhere(script);
+            showCardError(cardEl, "Couldn't update Approved status.");
+            return;
+         }
+
+         if (!scriptMatchesCurrentFilter(script)) {
+            cardEl.remove();
+            ensureEmptyStateIfNeeded(scriptsList, "No scripts here.");
+         }
+      }
+
+      async function handleToggleDone(id, cardEl) {
+         const script = allScripts.find(s => s.id === id);
+         if (!script) return;
+
+         const checkbox = cardEl.querySelector(".done-checkbox");
+         const previousDone = script.done;
+         const nextDone = !previousDone;
+
+         // Optimistic update
+         script.done = nextDone;
+         if (checkbox) checkbox.disabled = true;
+         syncCardEverywhere(script);
+
+         const {error} = await toggleDone(id, previousDone);
+
+         if (checkbox) checkbox.disabled = false;
+
+         if (error) {
+            // Revert on failure
+            script.done = previousDone;
+            if (checkbox) checkbox.checked = previousDone;
+            syncCardEverywhere(script);
+            showCardError(cardEl, "Couldn't update Done status.");
+            return;
+         }
+
+         if (!scriptMatchesCurrentFilter(script)) {
+            cardEl.remove();
+            ensureEmptyStateIfNeeded(scriptsList, "No scripts here.");
+         }
+      }
+
+      async function handleDelete(id, cardEl) {
+         const deleteBtn = cardEl.querySelector(".delete-btn");
+         if (deleteBtn) deleteBtn.disabled = true;
+
+         const {error} = await deleteScript(id);
+
+         if (error) {
+            if (deleteBtn) deleteBtn.disabled = false;
+            showCardError(cardEl, "Couldn't delete script.");
+            return;
+         }
+
+         allScripts = allScripts.filter(s => s.id !== id);
+
+         cardEl.remove();
+         ensureEmptyStateIfNeeded(scriptsList, "No scripts here.");
+
+         const homeCard = homeList.querySelector(`.script-card[data-id="${id}"]`);
+         if (homeCard) homeCard.remove();
+         ensureEmptyStateIfNeeded(homeList, "No scripts added yet.");
+      }
+
+      function handleEditStart(id) {
+         const script = allScripts.find(s => s.id === id);
+         const oldCard = scriptsList.querySelector(`.script-card[data-id="${id}"]`);
+         if (!script || !oldCard) return;
+
+         editingId = id;
+         const newCard = buildCardElement(script, {withCheckboxes: true, withDelete: true, withEdit: true, editing: true});
+         attachCardListeners(newCard, script);
+         oldCard.replaceWith(newCard);
+      }
+
+      function handleEditCancel(id) {
+         const script = allScripts.find(s => s.id === id);
+         const oldCard = scriptsList.querySelector(`.script-card[data-id="${id}"]`);
+         if (!script || !oldCard) return;
+
+         editingId = null;
+         const newCard = buildCardElement(script, {withCheckboxes: true, withDelete: true, withEdit: true, editing: false});
+         attachCardListeners(newCard, script);
+         oldCard.replaceWith(newCard);
+      }
+
+      async function handleEditSave(id, cardEl) {
+         const titleInput = cardEl.querySelector(".edit-title-input");
+         const descInput = cardEl.querySelector(".edit-desc-input");
+         const newTitle = titleInput.value.trim();
+         const newDesc = descInput.value.trim();
+
+         if (!newTitle) {
+            titleInput.focus();
+            return;
+         }
+
+         const saveBtn = cardEl.querySelector(".edit-save-btn");
+         const cancelBtn = cardEl.querySelector(".edit-cancel-btn");
+         if (saveBtn) saveBtn.disabled = true;
+         if (cancelBtn) cancelBtn.disabled = true;
+
+         const {error} = await updateScript(id, newTitle, newDesc);
+
+         if (error) {
+            if (saveBtn) saveBtn.disabled = false;
+            if (cancelBtn) cancelBtn.disabled = false;
+            showCardError(cardEl, "Couldn't save changes.");
+            return;
+         }
+
+         const script = allScripts.find(s => s.id === id);
+         if (script) {
+            script.title = newTitle;
+            script.description = newDesc;
+         }
+         editingId = null;
+
+         const newCard = buildCardElement(script, {withCheckboxes: true, withDelete: true, withEdit: true, editing: false});
+         attachCardListeners(newCard, script);
+         cardEl.replaceWith(newCard);
+
+         const homeCard = homeList.querySelector(`.script-card[data-id="${id}"]`);
+         if (homeCard) {
+            const newHomeCard = buildCardElement(script, {withCheckboxes: false, withDelete: false, withEdit: false, editing: false});
+            homeCard.replaceWith(newHomeCard);
+         }
+      }
+
+      /* Filter buttons — re-render Scripts view from local state, no fetch. */
       document.querySelectorAll(".filter-btn").forEach(btn => {
          btn.addEventListener("click", () => {
             document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             currentFilter = btn.dataset.filter;
-            renderScripts();
+            renderScriptsList();
          });
       });
 
@@ -1103,12 +1324,44 @@ LOGIN SCREEN - SUPABASE AUTH
          }
 
          submitAddBtn.disabled = true;
-         await addScript(title, description);
+         const newScript = await addScript(title, description);
          submitAddBtn.disabled = false;
+
+         if (!newScript) {
+            showFormError("Couldn't add script. Please try again.");
+            return;
+         }
+
          closeAddForm();
-         renderScripts();
-         renderHome();
+
+         // Newest first — this script is the newest, so it goes at the front.
+         allScripts.unshift(newScript);
+
+         if (scriptMatchesCurrentFilter(newScript)) {
+            removeEmptyState(scriptsList);
+            const newCard = buildCardElement(newScript, {withCheckboxes: true, withDelete: true, withEdit: true, editing: false});
+            attachCardListeners(newCard, newScript);
+            scriptsList.prepend(newCard);
+         }
+
+         removeEmptyState(homeList);
+         const newHomeCard = buildCardElement(newScript, {withCheckboxes: false, withDelete: false, withEdit: false, editing: false});
+         homeList.prepend(newHomeCard);
       });
+
+      /* ============================================================
+         INITIAL LOAD
+         The only place that fetches everything from Supabase.
+      ============================================================ */
+      async function loadInitialData() {
+         homeList.innerHTML = `<div class="empty-state">Loading...</div>`;
+         scriptsList.innerHTML = `<div class="empty-state">Loading...</div>`;
+
+         allScripts = await getScripts(); // already newest first
+
+         renderHomeList();
+         renderScriptsList();
+      }
    </script>
 </body>
 
