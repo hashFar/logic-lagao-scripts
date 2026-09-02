@@ -394,6 +394,14 @@
          cursor: pointer;
       }
 
+      .rejected-checkbox {
+         width: 18px;
+         height: 18px;
+         accent-color: var(--danger);
+         flex-shrink: 0;
+         cursor: pointer;
+      }
+
       .script-body {
          flex: 1;
          min-width: 0;
@@ -452,8 +460,25 @@
          color: var(--not-approved);
       }
 
+      .status-badge.rejected {
+         background: rgba(217, 83, 79, 0.15);
+         color: var(--danger);
+      }
+
+      .status-badge.not-rejected {
+         background: rgba(154, 154, 154, 0.15);
+         color: var(--not-approved);
+      }
+
       .date-text {
          color: var(--text-dim);
+      }
+
+      .added-by {
+         font-size: 11px;
+         color: var(--text-dim);
+         margin: 8px 0 0;
+         word-break: break-word;
       }
 
       .delete-btn {
@@ -518,6 +543,163 @@
          display: flex;
          gap: 8px;
          justify-content: flex-end;
+      }
+
+      /* Comments */
+      .comments-section {
+         margin-top: 10px;
+      }
+
+      .comments-toggle-btn {
+         background: none;
+         border: none;
+         color: var(--text-dim);
+         font-size: 12px;
+         padding: 4px 0;
+         display: flex;
+         align-items: center;
+         gap: 4px;
+      }
+
+      .comments-toggle-btn:hover {
+         color: var(--accent);
+      }
+
+      .comments-panel {
+         display: none;
+         margin-top: 8px;
+         padding-top: 8px;
+         border-top: 1px solid var(--border);
+      }
+
+      .comments-panel.active {
+         display: block;
+      }
+
+      .comments-list {
+         margin-bottom: 8px;
+      }
+
+      .comment-item {
+         padding: 6px 0;
+         border-bottom: 1px solid var(--border);
+      }
+
+      .comment-item:last-child {
+         border-bottom: none;
+      }
+
+      .comment-header {
+         display: flex;
+         align-items: center;
+         gap: 6px;
+         flex-wrap: wrap;
+      }
+
+      .comment-author {
+         font-size: 12px;
+         font-weight: 600;
+         color: var(--text);
+      }
+
+      .comment-date {
+         font-size: 11px;
+         color: var(--text-dim);
+         margin-left: 6px;
+      }
+
+      .comment-text {
+         font-size: 13px;
+         color: var(--text);
+         margin: 4px 0 0;
+         word-break: break-word;
+      }
+
+      .comment-actions {
+         display: flex;
+         gap: 10px;
+         margin-top: 4px;
+      }
+
+      .comment-actions button {
+         background: none;
+         border: none;
+         padding: 0;
+         font-size: 11px;
+         font-weight: 600;
+      }
+
+      .comment-edit-btn {
+         color: var(--text-dim);
+      }
+
+      .comment-edit-btn:hover {
+         color: var(--accent);
+      }
+
+      .comment-delete-btn {
+         color: var(--text-dim);
+      }
+
+      .comment-delete-btn:hover {
+         color: var(--danger);
+      }
+
+      .comment-edit-input {
+         width: 100%;
+         padding: 6px 8px;
+         border-radius: 8px;
+         border: 1px solid var(--border);
+         background: var(--surface-2);
+         color: var(--text);
+         font-size: 13px;
+         outline: none;
+         resize: vertical;
+         margin: 4px 0 6px;
+      }
+
+      .comment-edit-input:focus {
+         border-color: var(--accent);
+      }
+
+      .comment-save-btn {
+         color: var(--accent);
+      }
+
+      .comment-cancel-btn {
+         color: var(--text-dim);
+      }
+
+      .comments-empty {
+         font-size: 12px;
+         color: var(--text-dim);
+         padding: 6px 0;
+      }
+
+      .comment-add {
+         display: flex;
+         flex-direction: column;
+         gap: 6px;
+      }
+
+      .comment-input {
+         width: 100%;
+         padding: 8px 10px;
+         border-radius: 8px;
+         border: 1px solid var(--border);
+         background: var(--surface-2);
+         color: var(--text);
+         font-size: 13px;
+         outline: none;
+         resize: vertical;
+      }
+
+      .comment-input:focus {
+         border-color: var(--accent);
+      }
+
+      .comment-submit-btn {
+         align-self: flex-end;
       }
 
       .empty-state {
@@ -590,6 +772,7 @@
                <button class="filter-btn" data-filter="approved">Approved</button>
                <button class="filter-btn" data-filter="not-done">Not Done</button>
                <button class="filter-btn" data-filter="done">Done</button>
+               <button class="filter-btn" data-filter="rejected">Rejected</button>
             </div>
             <button class="add-btn" id="showAddFormBtn" title="Add script">+</button>
          </div>
@@ -670,6 +853,7 @@
       const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       const TABLE_NAME = "scripts";
+      const COMMENTS_TABLE_NAME = "comments";
 
       // Converts a Supabase row into the shape the UI expects.
       function _mapRow(row) {
@@ -679,7 +863,24 @@
             description: row.description || "",
             done: row.done,
             approved: row.approved,
-            createdAt: row.created_at
+            rejected: row.rejected,
+            createdAt: row.created_at,
+            createdByEmail: row.created_by_email || ""
+         };
+      }
+
+      // Converts a Supabase comment row (with joined profile) into the
+      // shape the UI expects.
+      function _mapCommentRow(row) {
+         const profile = row.profiles;
+         const authorName = (profile && (profile.name || profile.email)) || "Unknown";
+         return {
+            id: row.id,
+            scriptId: row.script_id,
+            userId: row.user_id,
+            text: row.comment,
+            createdAt: row.created_at,
+            authorName: authorName
          };
       }
 
@@ -697,11 +898,22 @@
          return data.map(_mapRow);
       }
 
-      // Adds a new script. Returns the created script (or null on failure).
+      // Adds a new script, automatically stamping it with the current
+      // logged-in user's email. Returns the created script (or null).
       async function addScript(title, description) {
+         const {data: userData} = await supabaseClient.auth.getUser();
+         const email = userData && userData.user ? userData.user.email : null;
+
          const {data, error} = await supabaseClient
             .from(TABLE_NAME)
-            .insert([{title: title, description: description, done: false, approved: false}])
+            .insert([{
+               title: title,
+               description: description,
+               done: false,
+               approved: false,
+               rejected: false,
+               created_by_email: email
+            }])
             .select()
             .single();
 
@@ -738,6 +950,19 @@
          return {error};
       }
 
+      // Toggles a script's rejected status. `currentRejected` is the value before toggling.
+      async function toggleRejected(id, currentRejected) {
+         const {error} = await supabaseClient
+            .from(TABLE_NAME)
+            .update({rejected: !currentRejected})
+            .eq("id", id);
+
+         if (error) {
+            console.error("toggleRejected error:", error.message);
+         }
+         return {error};
+      }
+
       // Deletes a script by id.
       async function deleteScript(id) {
          const {error} = await supabaseClient
@@ -764,16 +989,86 @@
          return {error};
       }
 
+      // Returns all comments for a script, oldest first, with the
+      // commenter's display name resolved from the profiles table.
+      async function getComments(scriptId) {
+         const {data, error} = await supabaseClient
+            .from(COMMENTS_TABLE_NAME)
+            .select("id, script_id, user_id, comment, created_at, profiles(name, email)")
+            .eq("script_id", scriptId)
+            .order("created_at", {ascending: true});
+
+         if (error) {
+            console.error("getComments error:", error.message);
+            return [];
+         }
+         return data.map(_mapCommentRow);
+      }
+
+      // Adds a comment as the current logged-in user. Returns the
+      // created comment (with resolved author name) or null on failure.
+      async function addComment(scriptId, text) {
+         const {data: userData, error: userError} = await supabaseClient.auth.getUser();
+         if (userError || !userData || !userData.user) {
+            console.error("addComment error: no logged-in user");
+            return null;
+         }
+
+         const {data, error} = await supabaseClient
+            .from(COMMENTS_TABLE_NAME)
+            .insert([{script_id: scriptId, user_id: userData.user.id, comment: text}])
+            .select("id, script_id, user_id, comment, created_at, profiles(name, email)")
+            .single();
+
+         if (error) {
+            console.error("addComment error:", error.message);
+            return null;
+         }
+         return _mapCommentRow(data);
+      }
+
+      // Updates the text of an existing comment. Only succeeds (per RLS)
+      // if the current user owns the comment.
+      async function updateComment(id, text) {
+         const {error} = await supabaseClient
+            .from(COMMENTS_TABLE_NAME)
+            .update({comment: text})
+            .eq("id", id);
+
+         if (error) {
+            console.error("updateComment error:", error.message);
+         }
+         return {error};
+      }
+
+      // Deletes a comment. Only succeeds (per RLS) if the current user
+      // owns the comment.
+      async function deleteComment(id) {
+         const {error} = await supabaseClient
+            .from(COMMENTS_TABLE_NAME)
+            .delete()
+            .eq("id", id);
+
+         if (error) {
+            console.error("deleteComment error:", error.message);
+         }
+         return {error};
+      }
+
       /* ============================================================
          UI STATE
          `allScripts` is the local, in-memory cache of every script,
          always kept newest-first. Supabase is only queried on
          initial load; every other operation reads/writes this array
          and patches the DOM directly.
+         `commentsCache` holds comments per script id, lazily loaded
+         the first time a script's comments panel is opened.
       ============================================================ */
       let allScripts = [];
-      let currentFilter = "all"; // all | approved | not-approved | done | not-done
+      let currentFilter = "all"; // all | approved | not-approved | done | not-done | rejected
       let editingId = null; // id of the script currently being edited, or null
+      let commentsCache = {}; // scriptId -> array of comments
+      let currentUserId = null; // Supabase auth id of the logged-in user, used for comment ownership checks
 
       /* ============================================================
 LOGIN SCREEN - SUPABASE AUTH
@@ -826,6 +1121,10 @@ LOGIN SCREEN - SUPABASE AUTH
       async function showApp() {
          passwordScreen.style.display = "none";
          appEl.style.display = "block";
+
+         const {data: userData} = await supabaseClient.auth.getUser();
+         currentUserId = userData && userData.user ? userData.user.id : null;
+
          await loadInitialData();
       }
 
@@ -850,6 +1149,7 @@ LOGIN SCREEN - SUPABASE AUTH
       logoutBtn.addEventListener("click", async () => {
          logoutBtn.disabled = true;
          await supabaseClient.auth.signOut();
+         currentUserId = null;
          logoutBtn.disabled = false;
          showLogin();
       });
@@ -895,17 +1195,88 @@ LOGIN SCREEN - SUPABASE AUTH
          return d.toLocaleDateString(undefined, {year: "numeric", month: "short", day: "numeric"});
       }
 
+      function formatDateTime(timestamp) {
+         const d = new Date(timestamp);
+         return d.toLocaleString(undefined, {year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+      }
+
       function escapeHtml(str) {
          const div = document.createElement("div");
          div.textContent = str;
          return div.innerHTML;
       }
 
-      function scriptCardHtml(script, {withCheckboxes, withDelete, withEdit, editing}) {
+      function commentHtml(c) {
+         const isOwner = c.userId === currentUserId;
+         return `
+        <div class="comment-item" data-comment-id="${c.id}" data-user-id="${c.userId}">
+          <div class="comment-header">
+            <span class="comment-author">${escapeHtml(c.authorName)}</span>
+            <span class="comment-date">${formatDateTime(c.createdAt)}</span>
+          </div>
+          <p class="comment-text">${escapeHtml(c.text)}</p>
+          ${isOwner ? `
+          <div class="comment-actions">
+            <button class="comment-edit-btn" type="button">Edit</button>
+            <button class="comment-delete-btn" type="button">Delete</button>
+          </div>
+          ` : ""}
+        </div>
+      `;
+      }
+
+      // Same comment, but rendered as an inline edit form (textarea + Save/Cancel).
+      function commentEditHtml(c) {
+         return `
+        <div class="comment-item" data-comment-id="${c.id}" data-user-id="${c.userId}">
+          <div class="comment-header">
+            <span class="comment-author">${escapeHtml(c.authorName)}</span>
+            <span class="comment-date">${formatDateTime(c.createdAt)}</span>
+          </div>
+          <textarea class="comment-edit-input" rows="2">${escapeHtml(c.text)}</textarea>
+          <div class="comment-actions">
+            <button class="comment-save-btn" type="button">Save</button>
+            <button class="comment-cancel-btn" type="button">Cancel</button>
+          </div>
+        </div>
+      `;
+      }
+
+      // Builds a detached DOM element for a single comment, in either
+      // display or edit mode (used for in-place edit/cancel/save).
+      function buildCommentElement(comment, editing) {
+         const wrapper = document.createElement("div");
+         wrapper.innerHTML = (editing ? commentEditHtml(comment) : commentHtml(comment)).trim();
+         return wrapper.firstElementChild;
+      }
+
+      function showCommentError(commentItem, message) {
+         let err = commentItem.querySelector(".inline-error");
+         if (!err) {
+            err = document.createElement("div");
+            err.className = "inline-error";
+            commentItem.appendChild(err);
+         }
+         err.textContent = message;
+         setTimeout(() => {
+            if (err && err.parentNode) err.remove();
+         }, 3000);
+      }
+
+      // Finds a cached comment object by id for a given script.
+      function findCachedComment(scriptId, commentId) {
+         const comments = commentsCache[scriptId];
+         if (!comments) return null;
+         return comments.find(c => String(c.id) === String(commentId)) || null;
+      }
+
+      function scriptCardHtml(script, {withCheckboxes, withDelete, withEdit, withComments, editing}) {
          const doneClass = script.done ? "done" : "not-done";
          const doneText = script.done ? "Done" : "Not Done";
          const approvedClass = script.approved ? "approved" : "not-approved";
          const approvedText = script.approved ? "Approved" : "Not Approved";
+         const rejectedClass = script.rejected ? "rejected" : "not-rejected";
+         const rejectedText = script.rejected ? "Rejected" : "Not Rejected";
 
          if (withEdit && editing) {
             return `
@@ -922,6 +1293,12 @@ LOGIN SCREEN - SUPABASE AUTH
       `;
          }
 
+         const cachedComments = commentsCache[script.id];
+         const commentsListHtml = cachedComments
+            ? (cachedComments.length ? cachedComments.map(commentHtml).join("") : `<div class="comments-empty">No comments yet.</div>`)
+            : "";
+         const commentsLoadedAttr = cachedComments ? "true" : "false";
+
          return `
       <div class="script-card" data-id="${script.id}">
         ${withCheckboxes ? `
@@ -934,6 +1311,10 @@ LOGIN SCREEN - SUPABASE AUTH
             <input type="checkbox" class="done-checkbox" id="done-${script.id}" ${script.done ? "checked" : ""}>
             <label for="done-${script.id}">Done</label>
           </div>
+          <div class="status-check-item">
+            <input type="checkbox" class="rejected-checkbox" id="rejected-${script.id}" ${script.rejected ? "checked" : ""}>
+            <label for="rejected-${script.id}">Rejected</label>
+          </div>
         </div>
         ` : ""}
         <div class="script-body">
@@ -942,8 +1323,22 @@ LOGIN SCREEN - SUPABASE AUTH
           <div class="script-meta">
             <span class="status-badge approved-badge ${approvedClass}">${approvedText}</span>
             <span class="status-badge done-badge ${doneClass}">${doneText}</span>
+            <span class="status-badge rejected-badge ${rejectedClass}">${rejectedText}</span>
             <span class="date-text">${formatDate(script.createdAt)}</span>
           </div>
+          <p class="added-by">Added by: ${escapeHtml(script.createdByEmail || "Unknown")}</p>
+          ${withComments ? `
+          <div class="comments-section">
+            <button class="comments-toggle-btn" type="button">&#128172; Comments</button>
+            <div class="comments-panel" data-loaded="${commentsLoadedAttr}">
+              <div class="comments-list">${commentsListHtml}</div>
+              <div class="comment-add">
+                <textarea class="comment-input" rows="2" placeholder="Add a comment..."></textarea>
+                <button class="btn btn-primary comment-submit-btn" type="button">Post</button>
+              </div>
+            </div>
+          </div>
+          ` : ""}
         </div>
         <div class="card-actions">
           ${withEdit ? `<button class="edit-btn" title="Edit">&#9998;</button>` : ""}
@@ -993,6 +1388,7 @@ LOGIN SCREEN - SUPABASE AUTH
          if (currentFilter === "not-done") return !script.done;
          if (currentFilter === "approved") return script.approved;
          if (currentFilter === "not-approved") return !script.approved;
+         if (currentFilter === "rejected") return script.rejected;
          return true; // all
       }
 
@@ -1012,6 +1408,13 @@ LOGIN SCREEN - SUPABASE AUTH
             doneBadge.classList.remove("done", "not-done");
             doneBadge.classList.add(script.done ? "done" : "not-done");
             doneBadge.textContent = script.done ? "Done" : "Not Done";
+         }
+
+         const rejectedBadge = cardEl.querySelector(".rejected-badge");
+         if (rejectedBadge) {
+            rejectedBadge.classList.remove("rejected", "not-rejected");
+            rejectedBadge.classList.add(script.rejected ? "rejected" : "not-rejected");
+            rejectedBadge.textContent = script.rejected ? "Rejected" : "Not Rejected";
          }
       }
 
@@ -1049,7 +1452,7 @@ LOGIN SCREEN - SUPABASE AUTH
          }
          homeList.innerHTML = "";
          allScripts.forEach(script => {
-            const cardEl = buildCardElement(script, {withCheckboxes: false, withDelete: false, withEdit: false, editing: false});
+            const cardEl = buildCardElement(script, {withCheckboxes: false, withDelete: false, withEdit: false, withComments: false, editing: false});
             homeList.appendChild(cardEl);
          });
       }
@@ -1067,6 +1470,7 @@ LOGIN SCREEN - SUPABASE AUTH
          if (currentFilter === "not-done") return allScripts.filter(s => !s.done);
          if (currentFilter === "approved") return allScripts.filter(s => s.approved);
          if (currentFilter === "not-approved") return allScripts.filter(s => !s.approved);
+         if (currentFilter === "rejected") return allScripts.filter(s => s.rejected);
          return allScripts;
       }
 
@@ -1084,6 +1488,7 @@ LOGIN SCREEN - SUPABASE AUTH
                withCheckboxes: true,
                withDelete: true,
                withEdit: true,
+               withComments: true,
                editing: script.id === editingId
             });
             attachCardListeners(cardEl, script);
@@ -1109,6 +1514,11 @@ LOGIN SCREEN - SUPABASE AUTH
             doneCheckbox.addEventListener("change", () => handleToggleDone(id, cardEl));
          }
 
+         const rejectedCheckbox = cardEl.querySelector(".rejected-checkbox");
+         if (rejectedCheckbox) {
+            rejectedCheckbox.addEventListener("change", () => handleToggleRejected(id, cardEl));
+         }
+
          const deleteBtn = cardEl.querySelector(".delete-btn");
          if (deleteBtn) {
             deleteBtn.addEventListener("click", () => handleDelete(id, cardEl));
@@ -1127,6 +1537,136 @@ LOGIN SCREEN - SUPABASE AUTH
          const editSaveBtn = cardEl.querySelector(".edit-save-btn");
          if (editSaveBtn) {
             editSaveBtn.addEventListener("click", () => handleEditSave(id, cardEl));
+         }
+
+         const commentsToggleBtn = cardEl.querySelector(".comments-toggle-btn");
+         if (commentsToggleBtn) {
+            commentsToggleBtn.addEventListener("click", () => handleToggleComments(id, cardEl));
+         }
+
+         const commentSubmitBtn = cardEl.querySelector(".comment-submit-btn");
+         if (commentSubmitBtn) {
+            commentSubmitBtn.addEventListener("click", () => handleAddComment(id, cardEl));
+         }
+
+         // Event delegation for comment Edit/Delete/Save/Cancel — a single
+         // listener on the list handles every comment, including ones
+         // added or re-rendered later, so no duplicate listeners pile up.
+         const commentsListEl = cardEl.querySelector(".comments-list");
+         if (commentsListEl) {
+            commentsListEl.addEventListener("click", (e) => handleCommentsListClick(e, id));
+         }
+      }
+
+      function handleCommentsListClick(e, scriptId) {
+         const editBtn = e.target.closest(".comment-edit-btn");
+         if (editBtn) {
+            const commentItem = editBtn.closest(".comment-item");
+            handleCommentEditStart(scriptId, commentItem);
+            return;
+         }
+
+         const deleteBtn = e.target.closest(".comment-delete-btn");
+         if (deleteBtn) {
+            const commentItem = deleteBtn.closest(".comment-item");
+            handleCommentDelete(scriptId, commentItem);
+            return;
+         }
+
+         const saveBtn = e.target.closest(".comment-save-btn");
+         if (saveBtn) {
+            const commentItem = saveBtn.closest(".comment-item");
+            handleCommentSave(scriptId, commentItem);
+            return;
+         }
+
+         const cancelBtn = e.target.closest(".comment-cancel-btn");
+         if (cancelBtn) {
+            const commentItem = cancelBtn.closest(".comment-item");
+            handleCommentCancel(scriptId, commentItem);
+            return;
+         }
+      }
+
+      function handleCommentEditStart(scriptId, commentItem) {
+         if (!commentItem) return;
+         const commentId = commentItem.dataset.commentId;
+         const comment = findCachedComment(scriptId, commentId);
+         if (!comment) return;
+
+         const newItem = buildCommentElement(comment, true);
+         commentItem.replaceWith(newItem);
+      }
+
+      function handleCommentCancel(scriptId, commentItem) {
+         if (!commentItem) return;
+         const commentId = commentItem.dataset.commentId;
+         const comment = findCachedComment(scriptId, commentId);
+         if (!comment) return;
+
+         const newItem = buildCommentElement(comment, false);
+         commentItem.replaceWith(newItem);
+      }
+
+      async function handleCommentSave(scriptId, commentItem) {
+         if (!commentItem) return;
+         const commentId = commentItem.dataset.commentId;
+         const textarea = commentItem.querySelector(".comment-edit-input");
+         const newText = textarea.value.trim();
+
+         if (!newText) {
+            textarea.focus();
+            return;
+         }
+
+         const saveBtn = commentItem.querySelector(".comment-save-btn");
+         const cancelBtn = commentItem.querySelector(".comment-cancel-btn");
+         if (saveBtn) saveBtn.disabled = true;
+         if (cancelBtn) cancelBtn.disabled = true;
+
+         const {error} = await updateComment(commentId, newText);
+
+         if (error) {
+            if (saveBtn) saveBtn.disabled = false;
+            if (cancelBtn) cancelBtn.disabled = false;
+            showCommentError(commentItem, "Couldn't save comment.");
+            return;
+         }
+
+         const comment = findCachedComment(scriptId, commentId);
+         if (comment) comment.text = newText;
+
+         const newItem = buildCommentElement(comment, false);
+         commentItem.replaceWith(newItem);
+      }
+
+      async function handleCommentDelete(scriptId, commentItem) {
+         if (!commentItem) return;
+         const commentId = commentItem.dataset.commentId;
+
+         const confirmed = window.confirm("Delete this comment?");
+         if (!confirmed) return;
+
+         const deleteBtn = commentItem.querySelector(".comment-delete-btn");
+         if (deleteBtn) deleteBtn.disabled = true;
+
+         const {error} = await deleteComment(commentId);
+
+         if (error) {
+            if (deleteBtn) deleteBtn.disabled = false;
+            showCommentError(commentItem, "Couldn't delete comment.");
+            return;
+         }
+
+         if (commentsCache[scriptId]) {
+            commentsCache[scriptId] = commentsCache[scriptId].filter(c => String(c.id) !== String(commentId));
+         }
+
+         const listEl = commentItem.parentElement;
+         commentItem.remove();
+
+         if (listEl && listEl.children.length === 0) {
+            listEl.innerHTML = `<div class="comments-empty">No comments yet.</div>`;
          }
       }
 
@@ -1194,6 +1734,38 @@ LOGIN SCREEN - SUPABASE AUTH
          }
       }
 
+      async function handleToggleRejected(id, cardEl) {
+         const script = allScripts.find(s => s.id === id);
+         if (!script) return;
+
+         const checkbox = cardEl.querySelector(".rejected-checkbox");
+         const previousRejected = script.rejected;
+         const nextRejected = !previousRejected;
+
+         // Optimistic update
+         script.rejected = nextRejected;
+         if (checkbox) checkbox.disabled = true;
+         syncCardEverywhere(script);
+
+         const {error} = await toggleRejected(id, previousRejected);
+
+         if (checkbox) checkbox.disabled = false;
+
+         if (error) {
+            // Revert on failure
+            script.rejected = previousRejected;
+            if (checkbox) checkbox.checked = previousRejected;
+            syncCardEverywhere(script);
+            showCardError(cardEl, "Couldn't update Rejected status.");
+            return;
+         }
+
+         if (!scriptMatchesCurrentFilter(script)) {
+            cardEl.remove();
+            ensureEmptyStateIfNeeded(scriptsList, "No scripts here.");
+         }
+      }
+
       async function handleDelete(id, cardEl) {
          const deleteBtn = cardEl.querySelector(".delete-btn");
          if (deleteBtn) deleteBtn.disabled = true;
@@ -1207,6 +1779,7 @@ LOGIN SCREEN - SUPABASE AUTH
          }
 
          allScripts = allScripts.filter(s => s.id !== id);
+         delete commentsCache[id];
 
          cardEl.remove();
          ensureEmptyStateIfNeeded(scriptsList, "No scripts here.");
@@ -1222,7 +1795,7 @@ LOGIN SCREEN - SUPABASE AUTH
          if (!script || !oldCard) return;
 
          editingId = id;
-         const newCard = buildCardElement(script, {withCheckboxes: true, withDelete: true, withEdit: true, editing: true});
+         const newCard = buildCardElement(script, {withCheckboxes: true, withDelete: true, withEdit: true, withComments: true, editing: true});
          attachCardListeners(newCard, script);
          oldCard.replaceWith(newCard);
       }
@@ -1233,7 +1806,7 @@ LOGIN SCREEN - SUPABASE AUTH
          if (!script || !oldCard) return;
 
          editingId = null;
-         const newCard = buildCardElement(script, {withCheckboxes: true, withDelete: true, withEdit: true, editing: false});
+         const newCard = buildCardElement(script, {withCheckboxes: true, withDelete: true, withEdit: true, withComments: true, editing: false});
          attachCardListeners(newCard, script);
          oldCard.replaceWith(newCard);
       }
@@ -1270,15 +1843,76 @@ LOGIN SCREEN - SUPABASE AUTH
          }
          editingId = null;
 
-         const newCard = buildCardElement(script, {withCheckboxes: true, withDelete: true, withEdit: true, editing: false});
+         const newCard = buildCardElement(script, {withCheckboxes: true, withDelete: true, withEdit: true, withComments: true, editing: false});
          attachCardListeners(newCard, script);
          cardEl.replaceWith(newCard);
 
          const homeCard = homeList.querySelector(`.script-card[data-id="${id}"]`);
          if (homeCard) {
-            const newHomeCard = buildCardElement(script, {withCheckboxes: false, withDelete: false, withEdit: false, editing: false});
+            const newHomeCard = buildCardElement(script, {withCheckboxes: false, withDelete: false, withEdit: false, withComments: false, editing: false});
             homeCard.replaceWith(newHomeCard);
          }
+      }
+
+      /* ============================================================
+         COMMENTS
+         Comments are lazily loaded the first time a script's panel is
+         opened, then cached in `commentsCache`. Posting a comment only
+         updates that script's own panel — never the whole list.
+      ============================================================ */
+      async function handleToggleComments(scriptId, cardEl) {
+         const panel = cardEl.querySelector(".comments-panel");
+         if (!panel) return;
+
+         const isOpening = !panel.classList.contains("active");
+         panel.classList.toggle("active");
+
+         if (isOpening && panel.dataset.loaded !== "true") {
+            const list = panel.querySelector(".comments-list");
+            list.innerHTML = `<div class="comments-empty">Loading comments...</div>`;
+
+            const comments = await getComments(scriptId);
+            commentsCache[scriptId] = comments;
+            panel.dataset.loaded = "true";
+
+            list.innerHTML = comments.length
+               ? comments.map(commentHtml).join("")
+               : `<div class="comments-empty">No comments yet.</div>`;
+         }
+      }
+
+      async function handleAddComment(scriptId, cardEl) {
+         const panel = cardEl.querySelector(".comments-panel");
+         if (!panel) return;
+
+         const input = panel.querySelector(".comment-input");
+         const submitBtn = panel.querySelector(".comment-submit-btn");
+         const text = input.value.trim();
+
+         if (!text) {
+            input.focus();
+            return;
+         }
+
+         submitBtn.disabled = true;
+         const newComment = await addComment(scriptId, text);
+         submitBtn.disabled = false;
+
+         if (!newComment) {
+            showCardError(cardEl, "Couldn't post comment.");
+            return;
+         }
+
+         input.value = "";
+
+         if (!commentsCache[scriptId]) commentsCache[scriptId] = [];
+         commentsCache[scriptId].push(newComment);
+         panel.dataset.loaded = "true";
+
+         const list = panel.querySelector(".comments-list");
+         const emptyMsg = list.querySelector(".comments-empty");
+         if (emptyMsg) emptyMsg.remove();
+         list.insertAdjacentHTML("beforeend", commentHtml(newComment));
       }
 
       /* Filter buttons — re-render Scripts view from local state, no fetch. */
@@ -1339,13 +1973,13 @@ LOGIN SCREEN - SUPABASE AUTH
 
          if (scriptMatchesCurrentFilter(newScript)) {
             removeEmptyState(scriptsList);
-            const newCard = buildCardElement(newScript, {withCheckboxes: true, withDelete: true, withEdit: true, editing: false});
+            const newCard = buildCardElement(newScript, {withCheckboxes: true, withDelete: true, withEdit: true, withComments: true, editing: false});
             attachCardListeners(newCard, newScript);
             scriptsList.prepend(newCard);
          }
 
          removeEmptyState(homeList);
-         const newHomeCard = buildCardElement(newScript, {withCheckboxes: false, withDelete: false, withEdit: false, editing: false});
+         const newHomeCard = buildCardElement(newScript, {withCheckboxes: false, withDelete: false, withEdit: false, withComments: false, editing: false});
          homeList.prepend(newHomeCard);
       });
 
@@ -1356,6 +1990,7 @@ LOGIN SCREEN - SUPABASE AUTH
       async function loadInitialData() {
          homeList.innerHTML = `<div class="empty-state">Loading...</div>`;
          scriptsList.innerHTML = `<div class="empty-state">Loading...</div>`;
+         commentsCache = {};
 
          allScripts = await getScripts(); // already newest first
 
